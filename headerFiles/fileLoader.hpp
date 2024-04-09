@@ -1,6 +1,5 @@
 #include <iostream>
-extern "C" {
-#include <Windows.h>
+#include <vector>
 
-	unsigned char readBinFile(std::string path);
-}
+#include <Windows.h>
+	void readBinFile(std::string path, std::vector <unsigned char>* returnData);

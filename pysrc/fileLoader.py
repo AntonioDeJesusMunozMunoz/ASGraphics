@@ -4,16 +4,21 @@ stdOut = open(sys.stdout.fileno(),'wb')
 stdErr = open(sys.stderr.fileno(), 'w')
 stdErr.write("python begins")
 
-with open('testProgram.vert.spv') as vert:
+#get file to read
+stdErr.write('\npython reading file name\n')
+fileName = input()
+
+with open(fileName, 'rb') as vert:
     #get fileSize and return
     stdErr.write('\npython return filezise\n')
-    stdOut.write(struct.pack('i',os.path.getsize('testProgram.vert.spv')))
-    stdOut.write(struct.pack('f',os.path.getsize('testProgram.frag.spv')))
-    #stdOut.write(struct.pack('i',os.path.getsize('testProgram.vert.spv')))
+    stdOut.write(struct.pack('i',os.path.getsize('testProgram.vert.spv')))    
 
-    stdErr.write('\npython awaits\n')
+    stdErr.write('\npython awaits\n')# false
     #input()
     
+    #return file contents
+    stdErr.write('\npython return vertexContents\n')
+    stdOut.write(vert.read())    
 
 sys.stdin.close()
 sys.stdout.close()

@@ -1,6 +1,6 @@
 #include <fileLoader.hpp>
 #include <vector>
-unsigned char readBinFile(std::string path) {
+void readBinFile(std::string path, std::vector <unsigned char> *returnData) {
 	//crear subproceso de python
 	HANDLE read, write;
 	PROCESS_INFORMATION pi;
@@ -39,6 +39,10 @@ unsigned char readBinFile(std::string path) {
 
 
 	DWORD bytesRead, bytesWritten;
+
+	//mandando a python el archivo a leer
+	WriteFile(write, path.c_str(), strlen(path.c_str()), &bytesWritten, NULL);
+
 	//pedir de python la longitud del archivo
 	int longitudDelArchivo;
 	printf("\nc waiting for filesize");
@@ -49,11 +53,11 @@ unsigned char readBinFile(std::string path) {
 
 	WriteFile(write, "\n", 1, &bytesWritten, NULL);
 
-	//crear array de esa longitud
-	std::vector <unsigned char> datos(longitudDelArchivo);
+	//darle al array esa longitud
+	returnData->assign(longitudDelArchivo, (unsigned char)'a');
 	
 	//conseguir de python los datos
-	ReadFile(read, datos.data(), sizeof(unsigned char) * longitudDelArchivo, &bytesRead, NULL);
+	ReadFile(read, returnData->data(), sizeof(unsigned char) * longitudDelArchivo, &bytesRead, NULL);
 	std::cout << bytesRead << std::endl;
 
 	printf("waiting\n");
@@ -67,6 +71,4 @@ unsigned char readBinFile(std::string path) {
 	CloseHandle(pi.hThread);
 
 		
-	return 's';
-
 }
