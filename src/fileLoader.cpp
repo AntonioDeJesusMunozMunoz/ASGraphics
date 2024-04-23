@@ -49,16 +49,16 @@ void readBinFile(std::string path, std::vector <unsigned char> *returnData) {
 	WaitForSingleObject(pi.hProcess, 2000);
 	printf("\nc reading filesize: ");
 	ReadFile(read, &longitudDelArchivo, sizeof(longitudDelArchivo), &bytesRead, NULL);
-	std::cout << bytesRead << std::endl;
-
+	printf("bytes read: %u, meaning %i\n");
+	printf("\nc greenligthing ");
 	WriteFile(write, "\n", 1, &bytesWritten, NULL);
 
 	//darle al array esa longitud
-	returnData->assign(longitudDelArchivo, (unsigned char)'a');
-	
+	//returnData->assign(longitudDelArchivo, (unsigned char)'a');
+	returnData->resize(longitudDelArchivo);
 	//conseguir de python los datos
 	ReadFile(read, returnData->data(), sizeof(unsigned char) * longitudDelArchivo, &bytesRead, NULL);
-	std::cout << bytesRead << std::endl;
+	printf("bytes read: %u\n");
 
 	printf("waiting\n");
 	WaitForSingleObject(pi.hProcess, INFINITE);

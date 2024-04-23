@@ -11,15 +11,17 @@ fileName = input()
 with open(fileName, 'rb') as vert:
     #get fileSize and return
     stdErr.write('\npython return filezise\n')
-    stdOut.write(struct.pack('i',os.path.getsize('testProgram.vert.spv')))    
+    stdOut.write(struct.pack('i',os.path.getsize(fileName)))    
 
     stdErr.write('\npython awaits\n')# false
-    #input()
+    #_a = input()
     
     #return file contents
     stdErr.write('\npython return vertexContents\n')
     stdOut.write(vert.read())    
 
+stdErr.write('\npython awaits permision to end\n')
+_a = input()
 sys.stdin.close()
 sys.stdout.close()
 
