@@ -18,7 +18,7 @@ with open(fileName, 'rb') as vert:
     
     #return file contents
     stdErr.write('\npython return vertexContents\n')
-    stdOut.write(vert.read())    
+    stdOut.write(os.read(vert.fileno(),os.path.getsize(fileName)))    
 
 stdErr.write('\npython awaits permision to end\n')
 _a = input()

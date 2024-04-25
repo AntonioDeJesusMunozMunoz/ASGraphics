@@ -28,12 +28,22 @@
 
 /*globales*/
 VkSurfaceKHR windowSurface;
+VkRenderPass renderPass;
+VkExtent2D chosenSwapExtent;
+VkSwapchainKHR swapChain;
+VkPipeline graphicsPipeline;
+VkCommandBuffer commandBuffer;
+VkQueue graphicsQueueHandle, presentQueueHandle;
+
+VkSemaphore gotframeBufferImageSemaforo, imageWrittenSemaforo;
+VkFence frameDrawnFence;
 
 const std::vector<const char*> usedExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};//es un typedef string
 const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 
 std::vector<VkImage> swapChainImages;
 std::vector<VkImageView> swapChainImageViews;
+std::vector<VkFramebuffer> frameBuffers;
 
 
 #ifdef NDEBUG
@@ -63,6 +73,60 @@ struct queueFamilyIndices{
 		return (familiesPresentBitMask == ALL_FAMILIES_PRESENT);
 	}
 };
+
+void grabarCommandBuffer(VkCommandBuffer buffer, uint32_t imageIndex){
+	//begin recording
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = 0;//opcional
+	beginInfo.pInheritanceInfo = nullptr;//es para buffers secundarios
+
+	if(vkBeginCommandBuffer(buffer, &beginInfo) != VK_SUCCESS){//lo resetea implicitamente
+		throw std::runtime_error("could not begin recording commands");
+	}
+
+	/*begin render pass*/
+	VkRenderPassBeginInfo renderPassInfo{};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassInfo.renderPass = renderPass;
+	renderPassInfo.framebuffer = frameBuffers[imageIndex];
+	renderPassInfo.renderArea.offset = {0,0};
+	renderPassInfo.renderArea.extent = chosenSwapExtent;
+
+	//clear value
+	VkClearValue clearValue = {{{0.0f,0.0f,0.0f}}};//negro
+
+	renderPassInfo.clearValueCount = 1;
+	renderPassInfo. pClearValues = &clearValue;
+
+	//iniciar la render pass
+	vkCmdBeginRenderPass(buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);//3er argumento, los comandos de la render pass serán embedded en el buffer sin usar un buffer secundario
+	vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+	//ViewPort y Scissors, pq los pusimos como dynamic state
+	VkViewport viewport{};
+	viewport.height = static_cast<float>(chosenSwapExtent.height);
+	viewport.width = static_cast<float>(chosenSwapExtent.width);
+	viewport.maxDepth = 1.0f;
+	viewport.minDepth = 0.0f;
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	vkCmdSetViewport(buffer, 0, 1, &viewport);
+
+	VkRect2D tijeras{};
+	tijeras.extent = chosenSwapExtent;
+	tijeras.offset = {0,0};
+	vkCmdSetScissor(buffer, 0, 1, &tijeras);
+
+	//draw and end
+	vkCmdDraw(buffer, 3, 1, 0, 0);
+
+	vkCmdEndRenderPass(buffer);
+
+	if(vkEndCommandBuffer(buffer) != VK_SUCCESS){
+		throw std::runtime_error("could not end recording of cmd buffer");
+	}
+}	
 
 VkShaderModule createShaderModule(std::vector<unsigned char> rawDataVector, VkDevice logicalDevice){
 	VkShaderModuleCreateInfo createInfo{};
@@ -177,12 +241,82 @@ queueFamilyIndices getSelectedQueueFamilies(VkPhysicalDevice device){
 	return selectedQueueFamilies;
 }
 
+void drawFrame(VkDevice logicalDevice){
+	//debemos sincronizar estas operaciones manualmente
+	/*SEMAFOROS
+	estan lo semáforos binario y los de timeline, solo usaremos los binarios
+
+	al iniciar una operación, le damos un semáforo: 
+	-si lo ponemos como signal, se pondrá en verde cuando termina la operación
+	-si lo ponemos como wait, la operación no iniciará hasta que el semáforo esté en verde
+
+	En cuando el que lo tenga como wait inicie, el semáforo se resetea y está listo para otro uso
+	*/
+	/*FENCES
+	este se usa para sincronizar el cpu en vez de gpu
+
+	al iniciar una operación le damos la fence:
+	-al proceso para que la ponga en verde cuando termine
+	-llamamos una función que hará al cpu esperar a que la fence esté en verde
+
+	Estas deben ser reseteadas manualmente
+	En general se prefieren semáforors pq detener al cpu no es ideal
+	*/
+	
+	//Lo regreso a la swapChain
+
+	//Esperar a que el anterior frame termine: fence
+	vkWaitForFences(logicalDevice, 1, &frameDrawnFence, VK_TRUE, UINT64_MAX);
+	vkResetFences(logicalDevice, 1 ,&frameDrawnFence);
+
+	//conseguir framebuffer: semaforo
+	uint32_t imageIndex;
+	vkAcquireNextImageKHR(logicalDevice, swapChain, UINT64_MAX, gotframeBufferImageSemaforo, VK_NULL_HANDLE, &imageIndex);
+
+	//grabar comandos al frame: ocurre en cpu, no necesita sincronización
+	vkResetCommandBuffer(commandBuffer,0);//el segundo parámetro es una bitmask para flags
+	grabarCommandBuffer(commandBuffer, imageIndex);
+
+	//submito el frame buffer: semaforo
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &gotframeBufferImageSemaforo;//Esperamos al semáforo 1 en la stage 1 de ambos array, en el semáforo 2 en la stage 2 y así
+	VkPipelineStageFlags stagesToWaitIn[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};//espera en esta stage especificamente
+	submitInfo.pWaitDstStageMask = stagesToWaitIn;
+
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &imageWrittenSemaforo;
+	
+	if (vkQueueSubmit(graphicsQueueHandle, 1, &submitInfo, frameDrawnFence) != VK_SUCCESS){
+		throw std::runtime_error("could not submit command buffer");
+	}
+
+	//regresar la imagen a la swapChain
+	VkPresentInfoKHR presentInfo{};
+	presentInfo.pImageIndices = &imageIndex;
+	presentInfo.pSwapchains = &swapChain;
+	presentInfo.pWaitSemaphores = &imageWrittenSemaforo;
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pResults = nullptr; //opcional, es un output para checar como le fué a cada swapChain individualmente
+
+	vkQueuePresentKHR(graphicsQueueHandle, &presentInfo);
+}
+
+
 bool isPhysicalDeviceSuitable(VkPhysicalDevice device){
 	queueFamilyIndices selectedQueueFamilies = getSelectedQueueFamilies(device);
 
 	bool extensionsSupported = checkDeviceExtensionSupport(device);
 	bool swapChainHasAllRequirements = false;
 	if (extensionsSupported){//debemos checar la swap chain solo si ya nos aseguramos que su extensión si tiene support
+	
 		SwapChainSupportDetails swapChainDetails = getSwapChainSupportDetails(device);
 		swapChainHasAllRequirements = !swapChainDetails.formats.empty() && ! swapChainDetails.presentModes.empty();
 	}
@@ -331,7 +465,6 @@ int main() {
 	}	
 
 	//conseguimos las queueHandles que se hicieron al mismo tiempo que el logical device
-	VkQueue graphicsQueueHandle, presentQueueHandle;
 	vkGetDeviceQueue(logicalDevice, selectedQueueFamilies.graphicsFamilyIndex, 0, &graphicsQueueHandle); // en queue index va su indice de queue de esta familia, solo tenemos uno de cada familia así que es 0 en todos.
 	vkGetDeviceQueue(logicalDevice, selectedQueueFamilies.presentFamilyIndex, 0, &presentQueueHandle); 
 
@@ -358,7 +491,7 @@ int main() {
 	}
 
 	//elegimos swap extent
-	VkExtent2D chosenSwapExtent = swapChainInfo.capabilities.currentExtent;//default
+	chosenSwapExtent = swapChainInfo.capabilities.currentExtent;//default
 	if (swapChainInfo.capabilities.currentExtent.width == (uint32_t)std::numeric_limits<uint32_t>::max()){
 		//conseguimos el tamaño en píxeles de la ventana
 		int pixelWidth, pixelHeigth;
@@ -404,8 +537,6 @@ int main() {
 	swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;//should the alpha be used to blend with other windows in the windows system, almost always no
 	swapChainCreateInfo.clipped = VK_TRUE;//clip obscured pixels, like by other windows
 	swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
-
-	VkSwapchainKHR swapChain;
 
 	if(vkCreateSwapchainKHR(logicalDevice, &swapChainCreateInfo, nullptr, &swapChain) != VK_SUCCESS){
 		throw std::runtime_error("could not create swap chain");
@@ -614,7 +745,6 @@ int main() {
 	colorSubpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;//esta subpass es de graficos
 	
 	//creamos renderPass
-	VkRenderPass renderPass;
 	VkRenderPassCreateInfo renderPassCI{};
 	renderPassCI.attachmentCount = 1;
 	renderPassCI.pAttachments = &colorAttachment;
@@ -622,12 +752,26 @@ int main() {
 	renderPassCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassCI.subpassCount = 1;
 
+	//subpass dependencies, lidian con trnasitions (especifica memory y execution dependencies entre subpasses)
+	//tenemos 3 subpasses, la que creamos, la operación antes y la operación después, vulkan tiene built-in dependencies que lidian con ellas pero hay que sincronizar la de la operación después
+	VkSubpassDependency subpassDependency{};
+	subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL; // VK_SUBPASS_EXTERNAL se refiere a la operación antes o después dependiendo de si está en .srcSubpass o .dstSubpass
+	subpassDependency.dstSubpass = 0;//indice de subpass, en este caso la de color
+	//Esperamos a:
+	subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;//esperaremos a esta operación
+	subpassDependency.srcAccessMask = 0;//específicamente a que 0 termine, osea a que 
+
+	subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;//esta operación será la que espere
+	subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;//específicamente esperaremos hasta que acabe y luego escribiremos
+
+	renderPassCI.dependencyCount = 1;
+	renderPassCI.pDependencies = &subpassDependency;
+
 	if(vkCreateRenderPass(logicalDevice, &renderPassCI, nullptr, &renderPass) != VK_SUCCESS){
 		throw std::runtime_error("could not create render pass");
 	}
 
 	//ya crear la pipeline
-	VkPipeline graphicsPipeline;
 	VkGraphicsPipelineCreateInfo graphicsPipelineCI{};
 	graphicsPipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	graphicsPipelineCI.basePipelineHandle = VK_NULL_HANDLE;//opcional, es para crear subpipelines que es más rapido que varias pipelines
@@ -650,26 +794,90 @@ int main() {
 		throw std::runtime_error("could not create graphics pipeline");
 	}
 
-	
-
 	//Destroy shader modules as soon as the code is in te pipeline just like openGL
 	vkDestroyShaderModule(logicalDevice, vertexShaderModule, nullptr);
 	vkDestroyShaderModule(logicalDevice, fragmentShaderModule, nullptr);
 
+	/*framebuffer, son todos los attachment (ej: color)*/
+	frameBuffers.resize(swapChainImages.size());
+	for (size_t i = 0; i < swapChainImageViews.size(); i++){//creamos framebuffer de cada color attachment
+		VkImageView;
+		VkImageView currAttachments[] = {swapChainImageViews[i]};//solo es el de color pero ps luego le meteremos mas attachments
+		VkFramebufferCreateInfo currCI{};
+		currCI.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		currCI.renderPass = renderPass; //decimos que debe ser compatible con esta render pass
+		currCI.attachmentCount = 1;
+		currCI.pAttachments = currAttachments;
+		currCI.width = chosenSwapExtent.width;
+		currCI.height = chosenSwapExtent.height;
+		currCI.layers = 1; 
+
+		if(vkCreateFramebuffer(logicalDevice, &currCI, nullptr, &(frameBuffers[i])) != VK_SUCCESS){
+			throw std::runtime_error("could not create frame buffer");
+		}
+	}
+	
+	/*command buffers*/
+	//deben estar en command pools, que manejan su memoria 
+	VkCommandPool commandPool;
+	VkCommandPoolCreateInfo commandPoolCI{};
+	commandPoolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	commandPoolCI.queueFamilyIndex = selectedQueueFamilies.graphicsFamilyIndex;
+	commandPoolCI.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;//le digo que me deje actualizarlos por separado
+
+	if(vkCreateCommandPool(logicalDevice, &commandPoolCI, nullptr, &commandPool) != VK_SUCCESS){
+		throw std::runtime_error("could not create command pool");
+	}
+
+	//alojamos la memoria para los buffers//automáticamente desalojados al destruir su pool
+	VkCommandBufferAllocateInfo commandBufferAlocateInfo{};
+	commandBufferAlocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	commandBufferAlocateInfo.commandPool = commandPool;
+	commandBufferAlocateInfo.commandBufferCount = 1;//se alojan varios a la vez usualmente
+	commandBufferAlocateInfo.level =VK_COMMAND_BUFFER_LEVEL_PRIMARY;//esta primario (se da directamente a la queue) y secundario (lo llama un command buffer primario), esto para reusar operaciones comunes
+
+	if(vkAllocateCommandBuffers(logicalDevice, &commandBufferAlocateInfo, &commandBuffer) != VK_SUCCESS){
+		throw std::runtime_error("could not create command buffer");
+	}
+
+	/*creamos primitivos de sincronización*/
+	VkFenceCreateInfo fenceCI{};//de echo estos primitivos no tienen parámetros, esto es para forward compatibility
+	fenceCI.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;//ps pa que en el primer frame diga inmediatamente que ya terminó de dibujar el anterior
+
+	VkSemaphoreCreateInfo semaforoCI{};
+	semaforoCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	if(vkCreateFence(logicalDevice, &fenceCI, nullptr, &frameDrawnFence) != VK_SUCCESS
+	|| vkCreateSemaphore(logicalDevice, &semaforoCI, nullptr, &gotframeBufferImageSemaforo) != VK_SUCCESS
+	|| vkCreateSemaphore(logicalDevice, &semaforoCI, nullptr, &imageWrittenSemaforo) != VK_SUCCESS){
+		throw std::runtime_error("could not create sync primitives");
+	}
+
 	/*main loop*/
 	while (!glfwWindowShouldClose(ventana)) {
 		glfwPollEvents();
+		drawFrame(logicalDevice);
 	}
+	vkDeviceWaitIdle(logicalDevice);
+
 
 	for (auto familyIndex : selectedQueueFamilies.allFamilyIndices){
 		printf("curr family: %u\n", familyIndex);
 	}
 	printf("are graphics and present family equal: %d", presentQueueHandle == graphicsQueueHandle);
 
+	//cleanup
+	vkDestroyFence(logicalDevice, frameDrawnFence, nullptr);
+	vkDestroySemaphore(logicalDevice, imageWrittenSemaforo, nullptr);
+	vkDestroySemaphore(logicalDevice, gotframeBufferImageSemaforo, nullptr);
+	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+	for (auto currFrameBuffer : frameBuffers){//debemos destruirlo antes de la render pass e image views
+		vkDestroyFramebuffer(logicalDevice, currFrameBuffer, nullptr);
+	}
 	for (auto imageView : swapChainImageViews){
 		vkDestroyImageView(logicalDevice, imageView, nullptr);
 	}
-
 	vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
 	vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
 	vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
