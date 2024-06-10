@@ -1,5 +1,5 @@
-#ifndef GLTF_IMPORTER_H
-#define GLTF_IMPORTER_H
+#ifndef GLTF_IMPORTER_H_
+#define GLTF_IMPORTER_H_
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>

@@ -1,5 +1,5 @@
-#ifndef MESH_H
-#define MESH_H
+#ifndef MESH_H_
+#define MESH_H_
 
 #include <stdio.h>
 #include <vertex.h>
