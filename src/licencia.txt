@@ -1,0 +1,7 @@
+osea no me acuerdo cuales usan pero ponlas
+
+tinyGltf usa la mit
+
+los archivos de sha256.h y sha256.cpp usan la de zlib:
+https://github.com/stbrumme/hash-library
+

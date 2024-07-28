@@ -4,3 +4,4 @@ glslc -c ./resourceFiles/shaderPrograms/src/testProgram.vert ./resourceFiles/sha
 echo [COMPILING BUFFER]
 glslc -c ./resourceFiles/shaderPrograms/src/bufferShaderProgram.vert ./resourceFiles/shaderPrograms/src/bufferShaderProgram.frag
 echo [DONE]
+echo i dont actually move the files tho

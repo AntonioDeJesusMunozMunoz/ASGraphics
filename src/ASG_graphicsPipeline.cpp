@@ -29,14 +29,14 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	//especificamos el binding
 	VkDescriptorSetLayoutBinding matrixBufferLayoutBinding{};
 	matrixBufferLayoutBinding.binding = 0;
-	matrixBufferLayoutBinding.descriptorCount = 1;//se suele hacer de varios, por ejemplos para dar la matrix de cada transformación de cada parte de un esqueleto
+	matrixBufferLayoutBinding.descriptorCount = 1;//se suele hacer de varios, por ejemplos para dar la matrix de cada transformaciï¿½n de cada parte de un esqueleto
 	matrixBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	matrixBufferLayoutBinding.pImmutableSamplers = nullptr;
 	matrixBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
 	samplerLayoutBinding.binding = 1;
-	samplerLayoutBinding.descriptorCount = 1;//se suele hacer de varios, por ejemplos para dar la matrix de cada transformación de cada parte de un esqueleto
+	samplerLayoutBinding.descriptorCount = 50;//TODO este es un nï¿½mero arbitrario de imï¿½genes, si lo cambias, checa que no entre en conflicto con el tamaï¿½o de su pool
 	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	samplerLayoutBinding.pImmutableSamplers = nullptr;
 	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -53,6 +53,7 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	if (vkCreateDescriptorSetLayout(logicalDevice, &descriptorSetLayoutCI, nullptr, &this->descriptorSetLayout) != VK_SUCCESS) {
 		throw std::runtime_error("could not create descriptor set layout");
 	}
+
 	/*shader stages*/
 	//read program data
 	std::vector<unsigned char> vertexData = readRawBinary("./resourceFiles/shaderPrograms/compiled/bufferShaderProgram.vert.spv");
@@ -170,7 +171,7 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	multisampleCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 	//Color blending, necesite global y perframebuffer
-	VkPipelineColorBlendAttachmentState blendAttachmentState{};//para añadir transparencia, solo adivinas los enums basado en como quieres que los combine
+	VkPipelineColorBlendAttachmentState blendAttachmentState{};//para aï¿½adir transparencia, solo adivinas los enums basado en como quieres que los combine
 	blendAttachmentState.blendEnable = VK_FALSE;
 	blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
 		VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -183,7 +184,7 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 
 	VkPipelineColorBlendStateCreateInfo blendCreateInfo{};
 	blendCreateInfo.attachmentCount = 1;
-	blendCreateInfo.logicOpEnable = VK_FALSE;//tambien podrías blendear con bitwise ops, pero poner esto true hace el attachment false
+	blendCreateInfo.logicOpEnable = VK_FALSE;//tambien podrï¿½as blendear con bitwise ops, pero poner esto true hace el attachment false
 	blendCreateInfo.pAttachments = &blendAttachmentState;
 	blendCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	blendCreateInfo.logicOp = VK_LOGIC_OP_COPY;
@@ -192,12 +193,20 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	blendCreateInfo.blendConstants[2] = 0.0f;
 	blendCreateInfo.blendConstants[3] = 0.0f;
 	
+	/*push constant range*/
+	VkPushConstantRange pcRange{};
+	pcRange.offset = 0;
+	pcRange.size = sizeof(pushConstants);
+	pcRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
 	/*pipeline layout*///maneja las uniform
 	VkPipelineLayoutCreateInfo pipelineLayoutCI{};
-	pipelineLayoutCI.pPushConstantRanges = nullptr;
-	pipelineLayoutCI.pSetLayouts = &this->descriptorSetLayout;
-	pipelineLayoutCI.pushConstantRangeCount = 0;
 	pipelineLayoutCI.setLayoutCount = 1;
+	pipelineLayoutCI.pSetLayouts = &this->descriptorSetLayout;
+
+	pipelineLayoutCI.pushConstantRangeCount = 1;
+	pipelineLayoutCI.pPushConstantRanges = &pcRange;
+	
 	pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
 	if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutCI, nullptr, &this->pipelineLayout) != VK_SUCCESS) {
@@ -219,7 +228,7 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	//cada subpass referencia un attachment
 	VkAttachmentReference colorAttachmentReference{};
 	colorAttachmentReference.attachment = 0;//indice en el array de attachments
-	colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;//el layout con el que trataré ese attachment, en este caso como color buffer
+	colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;//el layout con el que tratarï¿½ ese attachment, en este caso como color buffer
 
 	//las de depth buffer	
 	VkAttachmentDescription depthAttachment{};
@@ -235,7 +244,7 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	VkAttachmentReference depthAttachmentReference{};
 	depthAttachmentReference.attachment = 1;
 	depthAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	//cada subpass necesita descripción
+	//cada subpass necesita descripciï¿½n
 	VkSubpassDescription subpassDescription{};//la subpass de color y de depth es la misma
 	subpassDescription.pDepthStencilAttachment = &depthAttachmentReference;
 	subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;//esta subpass es de graficos
@@ -252,16 +261,16 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	renderPassCI.subpassCount = 1;
 
 	//subpass dependencies, lidian con trnasitions (especifica memory y execution dependencies entre subpasses)
-	//tenemos 3 subpasses, la que creamos, la operación antes y la operación después, vulkan tiene built-in dependencies que lidian con ellas pero hay que sincronizar la de la operación después
+	//tenemos 3 subpasses, la que creamos, la operaciï¿½n antes y la operaciï¿½n despuï¿½s, vulkan tiene built-in dependencies que lidian con ellas pero hay que sincronizar la de la operaciï¿½n despuï¿½s
 	VkSubpassDependency subpassDependency{};
-	subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL; // VK_SUBPASS_EXTERNAL se refiere a la operación antes o después dependiendo de si está en .srcSubpass o .dstSubpass
+	subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL; // VK_SUBPASS_EXTERNAL se refiere a la operaciï¿½n antes o despuï¿½s dependiendo de si estï¿½ en .srcSubpass o .dstSubpass
 	subpassDependency.dstSubpass = 0;//indice de subpass, en este caso la de color
 	//Esperamos a:
-	subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;//esperaremos a esta operación
-	subpassDependency.srcAccessMask = 0;//específicamente a que 0 termine, osea a que 
+	subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;//esperaremos a esta operaciï¿½n
+	subpassDependency.srcAccessMask = 0;//especï¿½ficamente a que 0 termine, osea a que 
 
-	subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;//esta operación será la que espere
-	subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;//específicamente esperaremos hasta que acabe y luego escribiremos
+	subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;//esta operaciï¿½n serï¿½ la que espere
+	subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;//especï¿½ficamente esperaremos hasta que acabe y luego escribiremos
 
 	renderPassCI.dependencyCount = 1;
 	renderPassCI.pDependencies = &subpassDependency;
@@ -273,7 +282,7 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	//ya crear la pipeline
 	VkGraphicsPipelineCreateInfo graphicsPipelineCI{};
 	graphicsPipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	graphicsPipelineCI.basePipelineHandle = VK_NULL_HANDLE;//opcional, es para crear subpipelines que es más rapido que varias pipelines
+	graphicsPipelineCI.basePipelineHandle = VK_NULL_HANDLE;//opcional, es para crear subpipelines que es mï¿½s rapido que varias pipelines
 	graphicsPipelineCI.basePipelineIndex = -1;//opcional, tiene que ver con parametro anterior
 	graphicsPipelineCI.layout = this->pipelineLayout;
 	graphicsPipelineCI.renderPass = this->renderPass;

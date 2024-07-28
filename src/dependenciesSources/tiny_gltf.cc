@@ -1,0 +1,7 @@
+#include <STB/stb_image.h>
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+//#define STB_IMAGE_IMPLEMENTATION
+
+#define TINYGLTF_NO_INCLUDE_STB_IMAGE
+#include <tiny_gltf.h>

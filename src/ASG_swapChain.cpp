@@ -14,7 +14,7 @@ SwapChainSupportDetails getSwapChainSupportDetails(VkPhysicalDevice device) {
 
 	//surface capabilities
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, windowSurface, &swapChainSupportInfo.capabilities);
-
+	swapChainSupportInfo.capabilities.maxImageCount;
 	//surface formats
 	uint32_t formatAmount;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(device, windowSurface, &formatAmount, nullptr);
@@ -61,7 +61,7 @@ asgSwapChain::asgSwapChain() {
 	//elegimos swap extent
 	swapExtent = supportDetails.capabilities.currentExtent;//default
 	if (supportDetails.capabilities.currentExtent.width == (uint32_t)std::numeric_limits<uint32_t>::max()) {
-		//conseguimos el tamaño en píxeles de la ventana
+		//conseguimos el tamaï¿½o en pï¿½xeles de la ventana
 		int pixelWidth, pixelHeigth;
 		glfwGetFramebufferSize(ventana, &pixelWidth, &pixelHeigth);
 		swapExtent = { static_cast<uint32_t>(pixelWidth), static_cast<uint32_t>(pixelHeigth) };
@@ -72,11 +72,12 @@ asgSwapChain::asgSwapChain() {
 	}
 
 	//last swapChain detail: image count
-	uint32_t swapChainImageCount = supportDetails.capabilities.minImageCount + 1;
+	uint32_t swapChainImageCount = 10;//supportDetails.capabilities.minImageCount + 1;//when i changed MAX_FRAMES_IN_FLIGHT but not this, it still ran without errors???
 
 	if (supportDetails.capabilities.maxImageCount != 0 && swapChainImageCount > supportDetails.capabilities.maxImageCount) {
 		swapChainImageCount = supportDetails.capabilities.maxImageCount;
 	}
+	printf("\nmin image count:%zu \nmax image count:%zu\n", supportDetails.capabilities.minImageCount, supportDetails.capabilities.maxImageCount);
 
 	VkSwapchainCreateInfoKHR swapChainCreateInfo{};
 	swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -93,10 +94,10 @@ asgSwapChain::asgSwapChain() {
 
 	queueFamilyIndices selectedQueueFamilies = getSelectedQueueFamilies(physicalDevice);
 
-	if (selectedQueueFamilies.graphicsFamilyIndex != selectedQueueFamilies.graphicsFamilyIndex) {
+	if (selectedQueueFamilies.graphicsFamilyIndex != selectedQueueFamilies.presentFamilyIndex) {
 		swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 		swapChainCreateInfo.queueFamilyIndexCount = 2;//these 2 args specify wich queue families will share the images
-		swapChainCreateInfo.pQueueFamilyIndices = selectedQueueFamilies.allFamilyIndices;
+		swapChainCreateInfo.pQueueFamilyIndices = selectedQueueFamilies.allFamilyIndices;//this is a bit sketchy bc it assumes the first two are the ones im checking for equality
 	}
 	else {
 		swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -116,7 +117,7 @@ asgSwapChain::asgSwapChain() {
 		printf("swap chain created\n");
 	}
 
-	//obtenemos las handles de las imagenes, vulkan puede crear las que quiera así que hay que pedir cuantas son
+	//obtenemos las handles de las imagenes, vulkan puede crear las que quiera asï¿½ que hay que pedir cuantas son
 	uint32_t amountOfSwapChainImages = 0;
 	vkGetSwapchainImagesKHR(logicalDevice, handle, &amountOfSwapChainImages, nullptr);
 
@@ -134,13 +135,13 @@ asgSwapChain::asgSwapChain() {
 
 		currImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		currImageViewInfo.format = surfaceFormat.format;
-		//estos te permiten mucha customización de los color channels
+		//estos te permiten mucha customizaciï¿½n de los color channels
 		currImageViewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 		currImageViewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
 		currImageViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
 		currImageViewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
 
-		currImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;//indicamos que estas imágenes son color targets
+		currImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;//indicamos que estas imï¿½genes son color targets
 		currImageViewInfo.subresourceRange.baseArrayLayer = 0;// no queremos mip maps ni multiple layers
 		currImageViewInfo.subresourceRange.baseMipLevel = 0;
 		currImageViewInfo.subresourceRange.layerCount = 1;
@@ -222,7 +223,7 @@ asgSwapChain::asgSwapChain() {
 	depthBufferImageViewCI.flags = 0;
 	vkCreateImageView(logicalDevice, &depthBufferImageViewCI, nullptr, &depthBufferImageView);
 
-	//ahora que ya creé los recursos para el depth buffer debo de cambiar su layout
+	//ahora que ya creï¿½ los recursos para el depth buffer debo de cambiar su layout
 	transitionImageLayout(depthBuffer, depthBufferFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 void asgSwapChain::del() {
@@ -242,10 +243,10 @@ void waitUntilCanRemakeSwapChain() {
 	printf("\ncurrScreenWidth; %i, currScreenHeigth: %i\n", currScreenWidth, currScreenHeigth);
 	while (currScreenWidth == 0 || currScreenHeigth == 0) {//mientras que la ventana mide 0x0 (minimizada), espero
 		glfwGetFramebufferSize(ventana, &currScreenWidth, &currScreenHeigth);
-		glfwWaitEvents();//espera a que ocurra algo referente a la ventana antes de checar su tamaño otra vez
+		glfwWaitEvents();//espera a que ocurra algo referente a la ventana antes de checar su tamaï¿½o otra vez
 	}
 		
-	vkDeviceWaitIdle(logicalDevice);//primero espero a que todas las async op terminen, tecnicamente podría recrear la swapChain dandole la anterior en oldSwapChain para que termine de ejecutar las ops de la antigua
+	vkDeviceWaitIdle(logicalDevice);//primero espero a que todas las async op terminen, tecnicamente podrï¿½a recrear la swapChain dandole la anterior en oldSwapChain para que termine de ejecutar las ops de la antigua
 }
 
 
