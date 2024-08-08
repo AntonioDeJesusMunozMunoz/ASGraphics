@@ -44,7 +44,9 @@ asgSwapChain::asgSwapChain() {
 	for (const auto& currFormat : supportDetails.formats) {
 		if (currFormat.format == VK_FORMAT_B8G8R8A8_SRGB && currFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
 			surfaceFormat = currFormat;
-			printf("format chosen succesfully\n");
+			if (validationLayersEnabled) {
+				printf("format chosen succesfully\n");
+			}
 			break;
 		}
 	}
@@ -61,7 +63,7 @@ asgSwapChain::asgSwapChain() {
 	//elegimos swap extent
 	swapExtent = supportDetails.capabilities.currentExtent;//default
 	if (supportDetails.capabilities.currentExtent.width == (uint32_t)std::numeric_limits<uint32_t>::max()) {
-		//conseguimos el tamaï¿½o en pï¿½xeles de la ventana
+		//conseguimos el tamaño en píxeles de la ventana
 		int pixelWidth, pixelHeigth;
 		glfwGetFramebufferSize(ventana, &pixelWidth, &pixelHeigth);
 		swapExtent = { static_cast<uint32_t>(pixelWidth), static_cast<uint32_t>(pixelHeigth) };
@@ -76,8 +78,7 @@ asgSwapChain::asgSwapChain() {
 
 	if (supportDetails.capabilities.maxImageCount != 0 && swapChainImageCount > supportDetails.capabilities.maxImageCount) {
 		swapChainImageCount = supportDetails.capabilities.maxImageCount;
-	}
-	printf("\nmin image count:%zu \nmax image count:%zu\n", supportDetails.capabilities.minImageCount, supportDetails.capabilities.maxImageCount);
+	}//printf("\nmin image count:%zu \nmax image count:%zu\n", supportDetails.capabilities.minImageCount, supportDetails.capabilities.maxImageCount);
 
 	VkSwapchainCreateInfoKHR swapChainCreateInfo{};
 	swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -113,15 +114,14 @@ asgSwapChain::asgSwapChain() {
 	if (vkCreateSwapchainKHR(logicalDevice, &swapChainCreateInfo, nullptr, &handle) != VK_SUCCESS) {
 		throw std::runtime_error("could not create swap chain");
 	}
-	else {
-		printf("swap chain created\n");
-	}
 
-	//obtenemos las handles de las imagenes, vulkan puede crear las que quiera asï¿½ que hay que pedir cuantas son
+	//obtenemos las handles de las imagenes, vulkan puede crear las que quiera así que hay que pedir cuantas son
 	uint32_t amountOfSwapChainImages = 0;
 	vkGetSwapchainImagesKHR(logicalDevice, handle, &amountOfSwapChainImages, nullptr);
 
-	printf("\namount of swapChain images: %u\n", amountOfSwapChainImages);
+	if (validationLayersEnabled) {
+		printf("\namount of swapChain images: %u\n", amountOfSwapChainImages);
+	}
 
 	images.resize(amountOfSwapChainImages);
 	views.resize(amountOfSwapChainImages);
@@ -135,22 +135,19 @@ asgSwapChain::asgSwapChain() {
 
 		currImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		currImageViewInfo.format = surfaceFormat.format;
-		//estos te permiten mucha customizaciï¿½n de los color channels
+		//estos te permiten mucha customización de los color channels
 		currImageViewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 		currImageViewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
 		currImageViewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
 		currImageViewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
 
-		currImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;//indicamos que estas imï¿½genes son color targets
+		currImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;//indicamos que estas imágenes son color targets
 		currImageViewInfo.subresourceRange.baseArrayLayer = 0;// no queremos mip maps ni multiple layers
 		currImageViewInfo.subresourceRange.baseMipLevel = 0;
 		currImageViewInfo.subresourceRange.layerCount = 1;
 		currImageViewInfo.subresourceRange.levelCount = 1;
 		if (vkCreateImageView(logicalDevice, &currImageViewInfo, nullptr, &views[i]) != VK_SUCCESS) {
 			throw std::runtime_error("could not create Image Views");
-		}
-		else {
-			printf("Image view %u created\n", i);
 		}
 	}
 		
@@ -223,7 +220,7 @@ asgSwapChain::asgSwapChain() {
 	depthBufferImageViewCI.flags = 0;
 	vkCreateImageView(logicalDevice, &depthBufferImageViewCI, nullptr, &depthBufferImageView);
 
-	//ahora que ya creï¿½ los recursos para el depth buffer debo de cambiar su layout
+	//ahora que ya creé los recursos para el depth buffer debo de cambiar su layout
 	transitionImageLayout(depthBuffer, depthBufferFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 void asgSwapChain::del() {
@@ -240,13 +237,12 @@ void asgSwapChain::del() {
 void waitUntilCanRemakeSwapChain() {
 	int currScreenWidth = 0, currScreenHeigth = 0;
 	glfwGetFramebufferSize(ventana, &currScreenWidth, &currScreenHeigth);
-	printf("\ncurrScreenWidth; %i, currScreenHeigth: %i\n", currScreenWidth, currScreenHeigth);
 	while (currScreenWidth == 0 || currScreenHeigth == 0) {//mientras que la ventana mide 0x0 (minimizada), espero
 		glfwGetFramebufferSize(ventana, &currScreenWidth, &currScreenHeigth);
-		glfwWaitEvents();//espera a que ocurra algo referente a la ventana antes de checar su tamaï¿½o otra vez
+		glfwWaitEvents();//espera a que ocurra algo referente a la ventana antes de checar su tamaño otra vez
 	}
 		
-	vkDeviceWaitIdle(logicalDevice);//primero espero a que todas las async op terminen, tecnicamente podrï¿½a recrear la swapChain dandole la anterior en oldSwapChain para que termine de ejecutar las ops de la antigua
+	vkDeviceWaitIdle(logicalDevice);//primero espero a que todas las async op terminen, tecnicamente podría recrear la swapChain dandole la anterior en oldSwapChain para que termine de ejecutar las ops de la antigua
 }
 
 

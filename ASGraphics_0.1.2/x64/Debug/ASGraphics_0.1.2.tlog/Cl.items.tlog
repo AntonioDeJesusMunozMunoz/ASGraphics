@@ -1,16 +1,8 @@
-<<<<<<< HEAD
-C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\ASG_graphicsPipeline.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\ASG_graphicsPipeline.obj
-C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\ASG_swapChain.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\ASG_swapChain.obj
-C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\ASG_utils.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\ASG_utils.obj
-C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\binFileLoader.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\binFileLoader.obj
-C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\stb.c;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\stb.obj
-C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dump\dump.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\dump.obj
-=======
 C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\ASGraphics.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\ASGraphics.obj
 C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\ASG_descriptorSets.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\ASG_descriptorSets.obj
 C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\ASG_graphicsPipeline.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\ASG_graphicsPipeline.obj
 C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\ASG_imageHandler.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\ASG_imageHandler.obj
-C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\ASG_modelFunctions.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\ASG_modelFunctions.obj
+C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\ASG_model.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\ASG_model.obj
 C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\ASG_swapChain.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\ASG_swapChain.obj
 C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\ASG_utils.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\ASG_utils.obj
 C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\ASG_VertexIndexBuffer.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\ASG_VertexIndexBuffer.obj
@@ -18,5 +10,4 @@ C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\bi
 C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\sha256.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\sha256.obj
 C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\stb.c;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\stb.obj
 C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\tiny_gltf.cc;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\tiny_gltf.obj
->>>>>>> test
 C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\main.cpp;C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\ASGraphics_0.1.2\x64\Debug\main.obj

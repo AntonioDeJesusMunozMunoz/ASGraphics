@@ -6,19 +6,31 @@ layout(binding = 0) uniform matrixTransformations{//notese que no tiene in
     mat4 proj;
 } squareMatrixTransformations;
 
+layout(binding = 2) uniform meshMatricesBlock{//no me dejo hacerlo simplemente un array de mat4
+    mat4 matrices[50];
+}meshMatrices;//try using this without declaring an instance
 
+layout(push_constant) uniform pushConstant{//no se pueden usar structs en uniones en glsl
+	int albedoIndex;
+	int matrixIndex;
+}pc;
 
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aColor;
 layout(location = 2) in vec2 aImgPos;
+layout(location = 3) in vec3 aNormal;
 
 layout(location = 0) out vec3 color;
 layout(location = 1) out vec2 imgPos;
+layout(location = 2) out vec3 normal;
+layout(location = 3) out mat4 modelMatrix;
 
-void main(){
-    gl_Position = squareMatrixTransformations.proj * squareMatrixTransformations.view * squareMatrixTransformations.model * vec4(aPos,1.0);
+void main(){//TODO creo que voy a pedir una model matrix por mesh ya multiplicada por la model matrix del modelo
+    gl_Position = squareMatrixTransformations.proj * squareMatrixTransformations.view * squareMatrixTransformations.model * meshMatrices.matrices[pc.matrixIndex] * vec4(aPos,1.0);
     color = aColor;
     imgPos = aImgPos;
+    normal = aNormal;
+    modelMatrix = squareMatrixTransformations.model * meshMatrices.matrices[pc.matrixIndex];//TODO
 }
 
 /*

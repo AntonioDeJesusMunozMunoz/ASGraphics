@@ -1,8 +1,7 @@
-//La usarï¿½ metiendo a mi dependencies/lib ASGraphics.lib y a dependencies/include ASGraphics.hpp
+//La usaré metiendo a mi dependencies/lib ASGraphics.lib y a dependencies/include ASGraphics.hpp
 #include <ASGraphics.hpp>
-#include <transitionHelper.hpp>//TODO
 
-//aquï¿½ van los include que no necesita ver quien usa esto para no contaminar el enviroment
+//aquí van los include que no necesita ver quien usa esto para no contaminar el enviroment
 //builtin
 #define NOMINMAX//para que windows no los defina
 #include <cstdio>
@@ -12,9 +11,11 @@
 #include <limits>//para numeric limits
 #include <Array>//para std::array
 #include <map>
+#include <algorithm>
+#include <random>//TODO
 
 //dependencies
-#include <STB/stb_image.h>
+#include <STB/stb_image.h>//me gustaria incuir glfw explicitamente, pero debes de #define include vulkan, tonce mejor q utils abstraiga eso
 #include <tiny_gltf.h>
 
 //local
@@ -25,7 +26,7 @@
 #include <ASG_graphicsPipeline.hpp>
 #include <ASG_VertexIndexBuffer.hpp>
 #include <ASG_imageHandler.hpp>
-#include <ASG_modelFunctions.hpp>
+#include <ASG_model.hpp>
 
 
 /*definitions echas por mi*/
@@ -33,23 +34,6 @@
 #define SCREENTALL 500
 
 /*Structs*/
-struct asgMesh {
-	asgPbrIndices pbrIndices;
-	uint32_t matrixIndex;
-	glm::mat4 defaultTransformations;
-	uint32_t indexOffset;
-	uint32_t vertexOffset;
-	uint32_t indexCount;
-
-	bool toBeDrawn;
-};
-
-struct asgModel {
-	glm::mat4 defaultTransformations;
-	std::string path;
-
-	std::vector<asgMesh> meshes;
-};
 
 /*class declarations*/
 
@@ -78,7 +62,7 @@ std::unique_ptr<asgPipeline> graphicsPipeline;
 
 //buffers
 std::map<std::string, std::unique_ptr<asgVIBuffer>> materialsBuffers;
-std::map<std::string, std::vector<asgMesh*>> materialsMeshes;
+std::map<std::string, std::vector<asgPrimitive*>> materialsPrimitives;
 
 //cmdBuffers
 std::vector<VkCommandBuffer> commandBuffers(MAX_FRAMES_IN_FLIGHT);
@@ -97,7 +81,7 @@ uint32_t currFrameDrawn = 0;
 
 
 //Modelos
-std::vector<asgModel> models(0);
+std::vector<asgModel> models;
 
 ///////*functions*////////
 
@@ -133,7 +117,7 @@ bool isPhysicalDeviceSuitable(VkPhysicalDevice device) {
 	}
 
 	bool swapChainHasAllRequirements = false;
-	if (extensionsSupported) {//debemos checar la swap chain solo si ya nos aseguramos que su extensiï¿½n si tiene support
+	if (extensionsSupported) {//debemos checar la swap chain solo si ya nos aseguramos que su extensión si tiene support
 
 		SwapChainSupportDetails swapChainDetails = getSwapChainSupportDetails(device);
 		swapChainHasAllRequirements = !swapChainDetails.formats.empty() && !swapChainDetails.presentModes.empty();
@@ -150,7 +134,7 @@ bool checkValidationLayerSupport() {
 	std::vector<VkLayerProperties> supportedLayers(layerCount);
 	vkEnumerateInstanceLayerProperties(&layerCount, supportedLayers.data());
 
-	//checamos si las validation layers estï¿½n en la lista de supported layers
+	//checamos si las validation layers están en la lista de supported layers
 	for (const char* layer : validationLayers) {
 		bool layerIsSupported = false;
 		for (const auto& currSupportedLayer : supportedLayers) {
@@ -172,7 +156,7 @@ bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
 	std::vector<VkExtensionProperties> supportedExtensions(numExtension);
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &numExtension, supportedExtensions.data());
 
-	//checamos si las extensiones que necesitamos estï¿½n en las extensiones que tienen soporte, podrï¿½as hacer 2 for loop, pero ps no
+	//checamos si las extensiones que necesitamos están en las extensiones que tienen soporte, podrías hacer 2 for loop, pero ps no
 	std::set<std::string> requiredExtensions(usedExtensions.begin(), usedExtensions.end());
 
 	for (const auto& extension : supportedExtensions) {
@@ -194,7 +178,7 @@ void remakeSwapChain() {
 void createFrameBuffers() {
 	frameBuffers.resize(swapChain->images.size());
 	for (size_t i = 0; i < swapChain->views.size(); i++) {//creamos framebuffer de cada color attachment  
-		VkImageView currAttachments[] = { swapChain->views[i], swapChain->depthBufferImageView };//solo es el de color pero ps luego le meteremos mas attachments //podemos usar el mismo depthBuffer porque solo una subpass ocurre simultaneamente debido a nuestros semï¿½foros
+		VkImageView currAttachments[] = { swapChain->views[i], swapChain->depthBufferImageView };//solo es el de color pero ps luego le meteremos mas attachments //podemos usar el mismo depthBuffer porque solo una subpass ocurre simultaneamente debido a nuestros semáforos
 		VkFramebufferCreateInfo currCI{};
 		currCI.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		currCI.renderPass = graphicsPipeline->renderPass; //decimos que debe ser compatible con esta render pass
@@ -216,45 +200,22 @@ void destroyFrameBuffers() {
 }
 
 //general
-void asgLoadData(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::string materialName) {
-	materialsBuffers.insert(std::make_pair(materialName, std::make_unique<asgVIBuffer>(1000, 1000)));
-	materialsBuffers.at(materialName)->append(vertices, indices);
+asgModelHandle::asgModelHandle(uint32_t modelIndex)
+{
+	this->modelIndex = modelIndex;
+	this->modelMatrix = glm::mat4(1.0f);
 }
 
-void asgLoadDataWithAlbedo(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::string albedoPath, std::string materialName) {
-	materialsBuffers.insert(std::make_pair(materialName, std::make_unique<asgVIBuffer>(1000, 1000)));
-
-	//make model
-	asgPbrIndices pbrIndices;
-	pbrIndices.albedoIndex = asgImageHandler::loadAlbedoMap(albedoPath);
-
-	asgMesh currMesh;
-	currMesh.defaultTransformations = glm::mat4(1.0f);
-	currMesh.pbrIndices = pbrIndices;
-	currMesh.matrixIndex = 0;//TODO
-	currMesh.vertexOffset = materialsBuffers[materialName]->verticesInside;
-	currMesh.indexOffset = materialsBuffers[materialName]->indicesInside;
-	currMesh.indexCount = static_cast<uint32_t>(indices.size());
-	currMesh.toBeDrawn = false;
-
-	asgModel currModel;
-	currModel.defaultTransformations = glm::mat4(1.0f);
-	currModel.path = "";
-	currModel.meshes.push_back(currMesh);
-
-	models.push_back(currModel);
-
-	materialsBuffers.at(materialName)->append(vertices, indices);
-
-	materialsMeshes.insert(std::make_pair(materialName, std::vector<asgMesh*>(0)));
-
-	materialsMeshes[materialName].push_back(&models[models.size() - 1].meshes[models[models.size() - 1].meshes.size() - 1]);
+const uint32_t asgModelHandle::getIndex()
+{
+	return this->modelIndex;
 }
 
 /*public*/
 void asgInit() {
-	printf("AAAAA");
-	std::cout << "validation layers enabled: " << validationLayersEnabled << std::endl;
+	if (validationLayersEnabled) {
+		printf("AAAAA");
+	}
 
 	/*window creation*/
 	glfwInit();
@@ -263,7 +224,7 @@ void asgInit() {
 	ventana = glfwCreateWindow(SCREENLONG, SCREENTALL, "uno", NULL, NULL);
 	glfwSetFramebufferSizeCallback(ventana, frameBufferResizeCallBack);
 
-	/*crear applicaciï¿½n*/
+	/*crear applicación*/
 
 	// app info
 	VkApplicationInfo appInfo{};
@@ -294,26 +255,21 @@ void asgInit() {
 		instanceCI.enabledLayerCount = 0;
 	}
 
-	//cheacar si si estï¿½n bien las validation layers
+	//cheacar si si están bien las validation layers
 	if (validationLayersEnabled && !checkValidationLayerSupport()) {
 		throw std::runtime_error("one or more validation layers are not supported");
-	}
-	else {
-		printf("\nno problem with validation layers\n");
 	}
 
 	if (vkCreateInstance(&instanceCI, nullptr, &vulkanInstance) != VK_SUCCESS) {
 		throw std::runtime_error("could not create vulkan instance");
 	}
 
-	/*Creamos window surface*/ //debe ser creada justo despuï¿½s de la instance porque influencia la decisiï¿½n de physical device
+	/*Creamos window surface*/ //debe ser creada justo después de la instance porque influencia la decisión de physical device
 	if (glfwCreateWindowSurface(vulkanInstance, ventana, nullptr, &windowSurface) != VK_SUCCESS) {//glfw nos ayuda a saltarnos 30000000 lineas
 		throw std::runtime_error("could not create window surface");
 	}
-	else {
-		printf("\nwindow surface created\n");
-	}
-	/*elegimos la targeta grï¿½fica (physical device)*/
+
+	/*elegimos la targeta gráfica (physical device)*/
 	//conseguimos lista de devices
 	uint32_t ndevices = 0;
 	vkEnumeratePhysicalDevices(vulkanInstance, &ndevices, nullptr);
@@ -336,12 +292,9 @@ void asgInit() {
 	if (physicalDevice == VK_NULL_HANDLE) {
 		throw std::runtime_error("could not pick a device, you have no decent GPUs");
 	}
-	else {
-		printf("\nappropiate device found\n");
-	}
 
 	/*hacemos logical device*/
-	//especificamos las queues que se crearï¿½n
+	//especificamos las queues que se crearán
 	queueFamilyIndices selectedQueueFamilies = getSelectedQueueFamilies(physicalDevice);
 	float allQueuePriority = 1.0f;//todas van a tener la misma prioridad de momento
 
@@ -359,10 +312,9 @@ void asgInit() {
 		queueCreateInfos.push_back(queueCreateInfo);
 	}
 
-	//especificamos las features que se usarï¿½n
-	VkPhysicalDeviceFeatures deviceFeaturesUsed{};//ninguna en especial asï¿½ que dejamos todo en VK_FALSE
+	//especificamos las features que se usarán
+	VkPhysicalDeviceFeatures deviceFeaturesUsed{};//ninguna en especial así que dejamos todo en VK_FALSE
 	deviceFeaturesUsed.samplerAnisotropy = VK_TRUE;//Character development
-	printf("\nsize of queueCreateInfos vector: %u\n", static_cast<uint32_t>(uniqueQueueIndices.size()));
 
 	///hacemos createinfo
 	VkDeviceCreateInfo logicalDeviceCI{};
@@ -371,7 +323,7 @@ void asgInit() {
 	logicalDeviceCI.pQueueCreateInfos = queueCreateInfos.data();
 	logicalDeviceCI.pEnabledFeatures = &deviceFeaturesUsed;
 
-	//Las siguientes estï¿½n deprecadas?, pero para compatibilidad se pueden poner
+	//Las siguientes están deprecadas?, pero para compatibilidad se pueden poner
 	logicalDeviceCI.enabledExtensionCount = static_cast<uint32_t>(usedExtensions.size());
 	logicalDeviceCI.ppEnabledExtensionNames = usedExtensions.data();
 	if (validationLayersEnabled) {
@@ -386,12 +338,9 @@ void asgInit() {
 	if (vkCreateDevice(physicalDevice, &logicalDeviceCI, nullptr, &logicalDevice) != VK_SUCCESS) {
 		throw std::runtime_error("could not create logical device");
 	}
-	else {
-		printf("\nlogical device created\n");
-	}
 
 	//conseguimos las queueHandles que se hicieron al mismo tiempo que el logical device
-	vkGetDeviceQueue(logicalDevice, selectedQueueFamilies.graphicsFamilyIndex, 0, &graphicsQueueHandle); // en queue index va su indice de queue de esta familia, solo tenemos uno de cada familia asï¿½ que es 0 en todos.
+	vkGetDeviceQueue(logicalDevice, selectedQueueFamilies.graphicsFamilyIndex, 0, &graphicsQueueHandle); // en queue index va su indice de queue de esta familia, solo tenemos uno de cada familia así que es 0 en todos.
 	vkGetDeviceQueue(logicalDevice, selectedQueueFamilies.presentFamilyIndex, 0, &presentQueueHandle);
 	vkGetDeviceQueue(logicalDevice, selectedQueueFamilies.transferFamilyIndex, 0, &transferQueueHandle);
 
@@ -417,7 +366,7 @@ void asgInit() {
 	}
 
 	/*Alojamos los command buffers locales*/
-	//alojamos la memoria para los buffers//automï¿½ticamente desalojados al destruir su pool
+	//alojamos la memoria para los buffers//automáticamente desalojados al destruir su pool
 	VkCommandBufferAllocateInfo commandBufferAlocateInfo{};
 	commandBufferAlocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	commandBufferAlocateInfo.commandPool = commandPool;
@@ -432,12 +381,12 @@ void asgInit() {
 	graphicsPipeline = std::make_unique<asgPipeline>(swapChain->surfaceFormat.format, swapChain->depthBufferFormat);
 	createFrameBuffers();
 
-	/*creamos primitivos de sincronizaciï¿½n*/
+	/*creamos primitivos de sincronización*/
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 
-		VkFenceCreateInfo fenceCI{};//de echo estos primitivos no tienen parï¿½metros, esto es para forward compatibility
+		VkFenceCreateInfo fenceCI{};//de echo estos primitivos no tienen parámetros, esto es para forward compatibility
 		fenceCI.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;//ps pa que en el primer frame diga inmediatamente que ya terminï¿½ de dibujar el anterior
+		fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;//ps pa que en el primer frame diga inmediatamente que ya terminó de dibujar el anterior
 
 		VkSemaphoreCreateInfo semaforoCI{};
 		semaforoCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -457,7 +406,6 @@ void asgInit() {
 	matrixTransformations.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	matrixTransformations.proj = glm::perspective(glm::radians(90.0f), swapChain->swapExtent.width / (float)swapChain->swapExtent.height, 0.1f, 10.0f);
 	matrixTransformations.proj[1][1] *= -1;//cambiamos el signo de la Y porque en vulkan la Y crece hacia abajo
-	matrixTransformations.model = glm::mat4(1.0f); //TODO
 	
 	for (int i = 0; i < mappedUniformBufferMemories.size(); i++) {
 		memcpy(mappedUniformBufferMemories[i], &matrixTransformations, sizeof(matrixTransformations));
@@ -466,9 +414,6 @@ void asgInit() {
 
 	VkPhysicalDeviceProperties properties;
 	vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-	printf("push constants range: %u", properties.limits.maxPushConstantsSize);
-	
-	printf("\napi version :%u.%u.%u", VK_VERSION_MAJOR(properties.apiVersion), VK_VERSION_MINOR(properties.apiVersion), VK_VERSION_PATCH(properties.apiVersion));
 }
 
 bool asgWindowShouldClose()
@@ -476,74 +421,60 @@ bool asgWindowShouldClose()
 	return glfwWindowShouldClose(ventana);
 }
 
-#ifdef ASG_GLFW_INTEGRATION
 GLFWwindow* asgGetGlfwWindowHandle()
 {
 	return ventana;
 }
-#endif
 
 void asgPollGLFWEvents()
 {
 	glfwPollEvents();
 }
 
-
-void asgLoadModel(std::string pathToModel) {
+asgModelHandle asgLoadModel(std::string pathToModel) {
 	//get the data with tinygltf
 	tinygltf::TinyGLTF loader;
 	std::string err, warning;
 
 	tinygltf::Model tgModel;
-	if (!loader.LoadASCIIFromFile(&tgModel, &err, &warning, pathToModel)) {
-		throw std::runtime_error("could not load gltf file");
+	if (pathToModel.back() == 'f') {
+		if (validationLayersEnabled) {
+			printf("\n[loading gltf]");
+		}
+		if (!loader.LoadASCIIFromFile(&tgModel, &err, &warning, pathToModel)) {
+			throw std::runtime_error("could not load gltf file");
+		}
 	}
-	std::cout << err;
-
-	//get data
-	std::vector<Vertex> vertices = asgModelFunc::getPrimitiveVertices(tgModel, tgModel.meshes[0].primitives[0]);
-	std::vector<uint32_t> indices = asgModelFunc::getPrimitiveIndices(tgModel, tgModel.meshes[0].primitives[0]);
-	asgPbrIndices pbrIndices = asgModelFunc::loadMaterialImages(tgModel, tgModel.materials[0]);
-	glm::mat4 defaultTransforms = asgModelFunc::getMeshTransforms(tgModel, tgModel.nodes[0]);
-	
-
-	/*load it*/
-	//make material stuff if there isnt any
-	if (materialsBuffers.find(tgModel.materials[0].name) == materialsBuffers.end()) {//si no esta
-		materialsBuffers.insert(std::make_pair(tgModel.materials[0].name, std::make_unique<asgVIBuffer>(1000, 1000)));
-		materialsMeshes.insert(std::make_pair(tgModel.materials[0].name, std::vector<asgMesh*>(0)));
+	else {
+		if (validationLayersEnabled) {
+			printf("\n[loading glb]");
+		}
+		if (!loader.LoadBinaryFromFile(&tgModel, &err, &warning, pathToModel)) {
+			throw std::runtime_error("could not load gltf file");
+		}
+	}
+	if (validationLayersEnabled) {
+		std::cout << err;
+		printf("\namount of scenes:%zu, default scene:%i", tgModel.scenes.size(), tgModel.defaultScene);
 	}
 
 	//make model
-	asgMesh currMesh;
-	currMesh.defaultTransformations = defaultTransforms;
-	currMesh.pbrIndices = pbrIndices;
-	currMesh.matrixIndex = 0;//TODO
-	currMesh.vertexOffset = materialsBuffers[tgModel.materials[0].name]->verticesInside;
-	currMesh.indexOffset = materialsBuffers[tgModel.materials[0].name]->indicesInside;
-	currMesh.indexCount = static_cast<uint32_t>(indices.size());
-	currMesh.toBeDrawn = false;
+	models.emplace_back(pathToModel, tgModel);
 
-	asgModel currModel;
-	currModel.defaultTransformations = glm::mat4(1.0f);
-	currModel.path = pathToModel;
-	currModel.meshes.push_back(currMesh);
+	//make the model handle
+	asgModelHandle returnHandle(static_cast<uint32_t>(models.size() - 1));
 
-	models.push_back(currModel);
-
-	//load vertices and indices
-	printf("\nmaterial name: %s", tgModel.materials[0].name.c_str());
-	materialsBuffers[tgModel.materials[0].name]->append(vertices, indices);
-	
-	//add the mesh reference into the materials mesh map
-	materialsMeshes[tgModel.materials[0].name].push_back(&currModel.meshes[currModel.meshes.size() - 1]);
+	if (validationLayersEnabled) {
+		printf("\nIF A MODELS MATERIAL LOOK GLITCHED ITS BECAUSE THE SWITCH FOR ALBEDO MAPS DOESNT SUPPORT ITS INDEX");
+	}
+	return returnHandle;	
 }
 
-void asgDrawFrame() {
+void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw) {
 	//wait until can draw curr frame
 	vkWaitForFences(logicalDevice, 1, &frameDrawnFences[currFrameDrawn], VK_FALSE, UINT64_MAX);//estoy dibujando 1 frame al mismo tiempo
 
-	//conseguir framebuffer: seï¿½aliza got frame buffer image semaforo
+	//conseguir framebuffer: señaliza got frame buffer image semaforo
 	uint32_t imageIndex;
 	VkResult resultRelatedToSwapChain = vkAcquireNextImageKHR(logicalDevice, swapChain->handle, UINT64_MAX, gotframeBufferImageSemaforos[currFrameDrawn], VK_NULL_HANDLE, &imageIndex);
 	if (resultRelatedToSwapChain == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -559,12 +490,42 @@ void asgDrawFrame() {
 
 	//reset frame specific resources
 	vkResetFences(logicalDevice, 1, &frameDrawnFences[currFrameDrawn]);//we are here wich means we are actually working so:
-	vkResetCommandBuffer(commandBuffers[currFrameDrawn], 0);//el segundo parï¿½metro es una bitmask para flags
+	vkResetCommandBuffer(commandBuffers[currFrameDrawn], 0);//el segundo parámetro es una bitmask para flags
 
-	//marcar las meshes que se van a dibujar
-	//actualiza las matrices de las meshes que se dibujaran
+	for (auto& modelHandle : modelsToDraw) {
+		//actualiza las matrices de las meshes que se dibujaran
+		models[modelHandle.getIndex()].applyMat(modelHandle.modelMatrix);
+
+		//marcar los primitives que se van a dibujar
+		for (auto& mesh : models[modelHandle.getIndex()].meshes) {
+			for (auto& primitive : mesh.primitives) {
+				primitive.toBeDrawn = true;//TODO IDEA: each mesh has the name of its material, i create the materialsMeshes map each drawFrameCall and fill it only with the ones to be drawn, this would help not having the mesh have a reference to its dad, tendre que hacer profiling para saber cual es mejor
+			}
+		}
+	}
+	
 	//paso las matrices al uniform buffer
-	//TODO
+	int loadedMatrices = 0;
+	for (auto& materialPrimitivePair : materialsPrimitives) {//printf("material: %s", materialPrimitivePair.first.c_str());
+		for (auto& primitive : materialPrimitivePair.second) {
+			if(primitive->toBeDrawn){//only load it if the primitive is being drawn
+				memcpy(static_cast<void*>(static_cast<unsigned char*>(mappedMeshModelMatricesBuffers[currFrameDrawn]) + loadedMatrices * 64), &primitive->currTransform, 64);//64 is the size of glm::mat4
+				primitive->matrixIndex = loadedMatrices;
+				loadedMatrices++;
+			}
+			
+		}
+	}
+	
+	//inicializo las matrices
+	MatrixTransformations matrixTransformations;//maybe all 3 matrices will change, view because of camera movement and proj because of window resize
+	matrixTransformations.view = viewMatrix;
+	matrixTransformations.proj = glm::perspective(glm::radians(90.0f), swapChain->swapExtent.width / (float)swapChain->swapExtent.height, 0.01f, 10.0f);
+	matrixTransformations.proj[1][1] *= -1;//cambiamos el signo de la Y porque en vulkan la Y crece hacia abajo
+	
+	for (int i = 0; i < mappedUniformBufferMemories.size(); i++) {
+		memcpy(mappedUniformBufferMemories[i], &matrixTransformations, sizeof(matrixTransformations));
+	}
 	
 	//iniciar grabacion de cmd buffer
 	VkCommandBufferBeginInfo beginInfo{};
@@ -586,12 +547,12 @@ void asgDrawFrame() {
 
 	VkClearValue clearValues[2];//EL ORDEN DE ESTOS CLEAR VALUES DEBE SER IDENTICO AL DE LOS ATTACHMENTS
 	clearValues[0].color = { 0.4f,0.2f,0.1f };//POSIBLE BUG SOURCE PQ NO INICALIZO LOS STRUCTS
-	clearValues[1].depthStencil = { 1.0f, 0 };//los pongo todos en 1.0f, el valor de profundidad mï¿½s lejano, el 0 es stencil
+	clearValues[1].depthStencil = { 1.0f, 0 };//los pongo todos en 1.0f, el valor de profundidad más lejano, el 0 es stencil
 
 	renderPassInfo.clearValueCount = 2;
 	renderPassInfo.pClearValues = clearValues;
 
-	vkCmdBeginRenderPass(commandBuffers[currFrameDrawn], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);//3er argumento, los comandos de la render pass serï¿½n embedded en el buffer sin usar un buffer secundario
+	vkCmdBeginRenderPass(commandBuffers[currFrameDrawn], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);//3er argumento, los comandos de la render pass serán embedded en el buffer sin usar un buffer secundario
 
 	//bind pipeline
 	vkCmdBindPipeline(commandBuffers[currFrameDrawn], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->handle);
@@ -614,6 +575,10 @@ void asgDrawFrame() {
 	tijeras.offset = { 0,0 };
 	vkCmdSetScissor(commandBuffers[currFrameDrawn], 0, 1, &tijeras);
 
+	//meto las push constants generales
+	float randomCoordinate = 0.0f;//((float)rand() / RAND_MAX);//static float randomCoordinate = 0.0f;//randomCoordinate += 0.01f;if (randomCoordinate >= 1.0f) { randomCoordinate = 0.0f; };
+	vkCmdPushConstants(commandBuffers[currFrameDrawn], graphicsPipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT	| VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(pushConstants), 4, &randomCoordinate);//TODO
+
 	//Dibujar
 	for (const auto& currMaterialBufferPair : materialsBuffers) {
 		//conectar buffers
@@ -621,16 +586,22 @@ void asgDrawFrame() {
 		VkDeviceSize bufferOffsets[] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffers[currFrameDrawn], 0, 1, vertexBuffers, bufferOffsets);
 		vkCmdBindIndexBuffer(commandBuffers[currFrameDrawn], currMaterialBufferPair.second->indexHandle, 0, VK_INDEX_TYPE_UINT32);
-		for (const auto& currMesh : materialsMeshes[currMaterialBufferPair.first]) {
-			//si esta marcada para dibujar //TODO
-			//meto sus push constants
-			pushConstants pc{};
-			pc.albedoIndex = currMesh->pbrIndices.albedoIndex;
-			pc.matrixIndex = currMesh->matrixIndex;
-			vkCmdPushConstants(commandBuffers[currFrameDrawn], graphicsPipeline->pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushConstants), &pc);
 
-			//dibujo la mesh
-			vkCmdDrawIndexed(commandBuffers[currFrameDrawn], currMesh->indexCount, 1, currMesh->indexOffset, currMesh->vertexOffset, 0);
+		for (const auto& currPrimitive : materialsPrimitives.at(currMaterialBufferPair.first)) {
+			//si esta marcada para dibujar
+			if (currPrimitive->toBeDrawn) {
+				//meto sus push constants
+				pushConstants pc{};
+				pc.albedoIndex = currPrimitive->pbrIndices.albedoIndex;
+				pc.matrixIndex = currPrimitive->matrixIndex;
+				vkCmdPushConstants(commandBuffers[currFrameDrawn], graphicsPipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushConstants), &pc);
+
+				//dibujo la mesh//printf("\nindex count: %u, index offset:%u, vertexOffset:%u ", currPrimitive->indexCount, currPrimitive->indexOffset, currPrimitive->vertexOffset);
+				vkCmdDrawIndexed(commandBuffers[currFrameDrawn], currPrimitive->indexCount, 1, currPrimitive->indexOffset, currPrimitive->vertexOffset, 0);
+
+				//reset to be drawn variable
+				currPrimitive->toBeDrawn = false;
+			}
 		}
 	}
 
@@ -650,7 +621,7 @@ void asgDrawFrame() {
 	submitInfo.pCommandBuffers = &commandBuffers[currFrameDrawn];
 
 	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &gotframeBufferImageSemaforos[currFrameDrawn];//Esperamos al semï¿½foro 1 en la stage 1 de ambos array, en el semï¿½foro 2 en la stage 2 y asï¿½
+	submitInfo.pWaitSemaphores = &gotframeBufferImageSemaforos[currFrameDrawn];//Esperamos al semáforo 1 en la stage 1 de ambos array, en el semáforo 2 en la stage 2 y así
 	VkPipelineStageFlags stagesToWaitIn[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };//espera en esta stage especificamente
 	submitInfo.pWaitDstStageMask = stagesToWaitIn;
 
@@ -669,7 +640,7 @@ void asgDrawFrame() {
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.swapchainCount = 1;
-	presentInfo.pResults = nullptr; //opcional, es un output para checar como le fuï¿½ a cada swapChain individualmente
+	presentInfo.pResults = nullptr; //opcional, es un output para checar como le fué a cada swapChain individualmente
 
 	resultRelatedToSwapChain = vkQueuePresentKHR(presentQueueHandle, &presentInfo);
 	if (resultRelatedToSwapChain == VK_ERROR_OUT_OF_DATE_KHR || resultRelatedToSwapChain == VK_SUBOPTIMAL_KHR || windowResized) {
@@ -715,3 +686,37 @@ void asgTerminate() {
 	glfwDestroyWindow(ventana);
 	glfwTerminate();
 }
+
+//test
+//void asgLoadData(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::string materialName) {
+//	materialsBuffers.insert(std::make_pair(materialName, std::make_unique<asgVIBuffer>(1000, 1000)));
+//	materialsBuffers.at(materialName)->append(vertices, indices);
+//}
+//void asgLoadDataWithAlbedo(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::string albedoPath, std::string materialName) {
+//	materialsBuffers.insert(std::make_pair(materialName, std::make_unique<asgVIBuffer>(1000, 1000)));
+//
+//	//make model
+//	asgPbrIndices pbrIndices;
+//	pbrIndices.albedoIndex = asgImageHandler::loadAlbedoMap(albedoPath);
+//
+//	asgMesh currMesh;
+//	asgPrimitive currPrimitive;
+//	currPrimitive.pbrIndices = pbrIndices;
+//	currPrimitive.matrixIndex = 0;
+//	currPrimitive.vertexOffset = materialsBuffers[materialName]->verticesInside;
+//	currPrimitive.indexOffset = materialsBuffers[materialName]->indicesInside;
+//	currPrimitive.indexCount = static_cast<uint32_t>(indices.size());
+//	currPrimitive.toBeDrawn = false;
+//
+//	asgModel currModel;
+//	currModel.path = "";
+//	currModel.meshes.push_back(currMesh);
+//
+//	models.push_back(currModel);
+//
+//	materialsBuffers.at(materialName)->append(vertices, indices);
+//
+//	materialsMeshes.insert(std::make_pair(materialName, std::vector<asgMesh*>(0)));
+//
+//	materialsMeshes[materialName].push_back(&models[models.size() - 1].meshes[models[models.size() - 1].meshes.size() - 1]);
+//}

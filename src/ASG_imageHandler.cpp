@@ -1,5 +1,6 @@
 //builtin
 #include <memory>
+#include <map>
 
 //dependencies
 #include <STB/stb_image.h>
@@ -293,7 +294,9 @@ uint32_t asgImageHandler::loadAlbedoMap(std::vector<unsigned char> data, uint32_
 bool isImageAlreadyLoaded(std::string pathOrDigest) {
 	for (std::string currPath : loadedImagesPathsAndDigests) {
 		if (currPath == pathOrDigest) {
-			printf("tried to load already loaded image");
+			if (validationLayersEnabled) {
+				printf("tried to load already loaded image");
+			}
 			return true;
 		}
 	}

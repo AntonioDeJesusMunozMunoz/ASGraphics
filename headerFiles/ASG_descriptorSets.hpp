@@ -1,9 +1,19 @@
 /*a look into the descriptorSets references*/
 #ifndef ASG_DESCRIPTOR_SETS_H_
 #define ASG_DESCRIPTOR_SETS_H_
-#include <ASG_utils.hpp>
-#include <transitionHelper.hpp>//TODO
+
+//builtin
 #include <vector>
+
+//local
+#include <ASG_utils.hpp>
+#include <ASG_graphicsPipeline.hpp>
+
+//extern VkDeviceMemory matrixUniformMemory;
+extern std::vector<void*> mappedUniformBufferMemories;
+extern std::vector<VkDescriptorSet> descriptorSets;
+
+extern std::vector<void*> mappedMeshModelMatricesBuffers;
 
 class descriptorSetImageUpdater {
 public:

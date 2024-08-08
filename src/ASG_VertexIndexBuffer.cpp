@@ -15,12 +15,7 @@ asgVIBuffer::asgVIBuffer(VkDeviceSize vertexBufferSize, VkDeviceSize indexBuffer
 
 
 	if (vkCreateBuffer(logicalDevice, &VertexBufferCI, nullptr, &this->vertexHandle) != VK_SUCCESS) {
-		try {
-			throw std::runtime_error("could not create new vertex buffer");
-		}
-		catch (std::exception ex) {
-			printf(ex.what());
-		}
+		throw std::runtime_error("could not create new vertex buffer");
 	}
 
 	// consigo sus mem requirements
@@ -82,8 +77,8 @@ void asgVIBuffer::append(std::vector<Vertex> vertexData, std::vector<uint32_t> i
 		//meto new index data
 		// copio staging -> index en su offset
 
-	uint32_t appendedVertexDataSize = vertexData.size() * sizeof(vertexData[0]);
-	uint32_t appendedIndexDataSize = indexData.size() * sizeof(indexData[0]);
+	uint32_t appendedVertexDataSize = static_cast<uint32_t>(vertexData.size() * sizeof(vertexData[0]));
+	uint32_t appendedIndexDataSize = static_cast<uint32_t>(indexData.size() * sizeof(indexData[0]));
 
 	bool vertexFits = appendedVertexDataSize < (this->vertexByteSize - this->vertexBytesUsed);
 	bool indexFits = appendedIndexDataSize < (this->indexByteSize - this->indexBytesUsed);
@@ -152,7 +147,6 @@ void asgVIBuffer::resize(VkDeviceSize vertexSizeRequired, VkDeviceSize indexSize
 	newVertexBufferCI.pQueueFamilyIndices = queueFamilyIndices;
 	newVertexBufferCI.queueFamilyIndexCount = 2;
 	newVertexBufferCI.sharingMode = VK_SHARING_MODE_CONCURRENT;
-	printf("size required: %u\n ", vertexSizeRequired);
 	newVertexBufferCI.size = vertexSizeRequired;
 	newVertexBufferCI.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 

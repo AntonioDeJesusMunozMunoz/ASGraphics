@@ -26,28 +26,41 @@ VkShaderModule createShaderModule(std::vector<unsigned char> rawDataVector) {
 }
 asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDepthBufferFormat){
 	/*descriptor set layout*/
-	//especificamos el binding
+	//creamos los layout binding
 	VkDescriptorSetLayoutBinding matrixBufferLayoutBinding{};
 	matrixBufferLayoutBinding.binding = 0;
-	matrixBufferLayoutBinding.descriptorCount = 1;//se suele hacer de varios, por ejemplos para dar la matrix de cada transformaciï¿½n de cada parte de un esqueleto
+	matrixBufferLayoutBinding.descriptorCount = 1;//se suele hacer de varios, por ejemplos para dar la matrix de cada transformación de cada parte de un esqueleto
 	matrixBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	matrixBufferLayoutBinding.pImmutableSamplers = nullptr;
 	matrixBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
 	samplerLayoutBinding.binding = 1;
-	samplerLayoutBinding.descriptorCount = 50;//TODO este es un nï¿½mero arbitrario de imï¿½genes, si lo cambias, checa que no entre en conflicto con el tamaï¿½o de su pool
+	samplerLayoutBinding.descriptorCount = 50;//TODO este es un número arbitrario de imágenes, si lo cambias, checa que no entre en conflicto con el tamaño de su pool
 	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	samplerLayoutBinding.pImmutableSamplers = nullptr;
 	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-	//todos los descriptor sets bindings se combinan en un VkDescriptorSetLayout
+	VkDescriptorSetLayoutBinding meshModelMatrixLB{};
+	meshModelMatrixLB.binding = 2;
+	meshModelMatrixLB.descriptorCount = 1;
+	meshModelMatrixLB.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	meshModelMatrixLB.pImmutableSamplers = nullptr;
+	meshModelMatrixLB.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-	VkDescriptorSetLayoutBinding allLayoutBindings[] = { matrixBufferLayoutBinding, samplerLayoutBinding };
+	VkDescriptorSetLayoutBinding lightingThresholdsLB{};//si fuera a hacer otro descriptor set que estuviera siempre conectado, este seria parte de él
+	lightingThresholdsLB.binding = 3;
+	lightingThresholdsLB.descriptorCount = 1;
+	lightingThresholdsLB.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	lightingThresholdsLB.pImmutableSamplers = nullptr;//inmutable samplers is if this descriptor points to some samplers, you can give them here (if they dont need updating ofc), and not worry about them anymore
+	lightingThresholdsLB.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	//todos los descriptor sets bindings se combinan en un VkDescriptorSetLayout
+	std::vector<VkDescriptorSetLayoutBinding> allLayoutBindings = { matrixBufferLayoutBinding, samplerLayoutBinding, meshModelMatrixLB, lightingThresholdsLB };
 
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI{};
-	descriptorSetLayoutCI.bindingCount = 2;
-	descriptorSetLayoutCI.pBindings = allLayoutBindings;
+	descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(allLayoutBindings.size());
+	descriptorSetLayoutCI.pBindings = allLayoutBindings.data();
 	descriptorSetLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 
 	if (vkCreateDescriptorSetLayout(logicalDevice, &descriptorSetLayoutCI, nullptr, &this->descriptorSetLayout) != VK_SUCCESS) {
@@ -56,11 +69,8 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 
 	/*shader stages*/
 	//read program data
-	std::vector<unsigned char> vertexData = readRawBinary("./resourceFiles/shaderPrograms/compiled/bufferShaderProgram.vert.spv");
-	std::cout << "\nfragment data size: " << vertexData.size() << std::endl;
-
-	std::vector<unsigned char> fragmentData = readRawBinary("./resourceFiles/shaderPrograms/compiled/bufferShaderProgram.frag.spv");
-	std::cout << "\nvertex data size: " << fragmentData.size() << std::endl;
+	std::vector<unsigned char> vertexData = readRawBinary("./resourceFiles/shaderPrograms/compiled/speedShading_0_1.vert.spv");
+	std::vector<unsigned char> fragmentData = readRawBinary("./resourceFiles/shaderPrograms/compiled/speedShading_0_1.frag.spv");
 
 	//create shader modules
 	VkShaderModule vertexShaderModule = createShaderModule(vertexData);
@@ -77,6 +87,7 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	fragmentStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	fragmentStageCreateInfo.module = fragmentShaderModule;
 	fragmentStageCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+
 	fragmentStageCreateInfo.pName = "main";//nombre del entrypoint
 
 	VkPipelineShaderStageCreateInfo shaderStagesCreateInfo[] = { vertexStageCreateinfo, fragmentStageCreateInfo };
@@ -100,7 +111,7 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	bindingDescription.stride = sizeof(Vertex);
 
 	//Attribute descriptions
-	VkVertexInputAttributeDescription attributeDescriptions[3]{};
+	VkVertexInputAttributeDescription attributeDescriptions[4]{};
 	attributeDescriptions[0].binding = 0;//el mismo que su binding descriptor
 	attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 	attributeDescriptions[0].location = 0;
@@ -116,9 +127,14 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	attributeDescriptions[2].location = 2;
 	attributeDescriptions[2].offset = offsetof(Vertex, imgPos);
 
+	attributeDescriptions[3].binding = 0;
+	attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attributeDescriptions[3].location = 3;
+	attributeDescriptions[3].offset = offsetof(Vertex, normal);
+
 	vertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
 	vertexInputStateCreateInfo.pVertexBindingDescriptions = &bindingDescription;
-	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 3;
+	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 4;
 	vertexInputStateCreateInfo.pVertexAttributeDescriptions = attributeDescriptions;
 
 	//depth stencil state
@@ -171,7 +187,7 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	multisampleCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 	//Color blending, necesite global y perframebuffer
-	VkPipelineColorBlendAttachmentState blendAttachmentState{};//para aï¿½adir transparencia, solo adivinas los enums basado en como quieres que los combine
+	VkPipelineColorBlendAttachmentState blendAttachmentState{};//para añadir transparencia, solo adivinas los enums basado en como quieres que los combine
 	blendAttachmentState.blendEnable = VK_FALSE;
 	blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
 		VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -184,7 +200,7 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 
 	VkPipelineColorBlendStateCreateInfo blendCreateInfo{};
 	blendCreateInfo.attachmentCount = 1;
-	blendCreateInfo.logicOpEnable = VK_FALSE;//tambien podrï¿½as blendear con bitwise ops, pero poner esto true hace el attachment false
+	blendCreateInfo.logicOpEnable = VK_FALSE;//tambien podrías blendear con bitwise ops, pero poner esto true hace el attachment false
 	blendCreateInfo.pAttachments = &blendAttachmentState;
 	blendCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	blendCreateInfo.logicOp = VK_LOGIC_OP_COPY;
@@ -196,16 +212,18 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	/*push constant range*/
 	VkPushConstantRange pcRange{};
 	pcRange.offset = 0;
-	pcRange.size = sizeof(pushConstants);
-	pcRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	pcRange.size = sizeof(pushConstants) + 4;//TODO 4
+	pcRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+	
+	std::vector<VkPushConstantRange> pcRanges = { pcRange};//puedes hacer mas de 1 range, pero la especificacion dice que solo uno por shader stage
 
 	/*pipeline layout*///maneja las uniform
 	VkPipelineLayoutCreateInfo pipelineLayoutCI{};
 	pipelineLayoutCI.setLayoutCount = 1;
 	pipelineLayoutCI.pSetLayouts = &this->descriptorSetLayout;
 
-	pipelineLayoutCI.pushConstantRangeCount = 1;
-	pipelineLayoutCI.pPushConstantRanges = &pcRange;
+	pipelineLayoutCI.pushConstantRangeCount = static_cast<uint32_t>(pcRanges.size());
+	pipelineLayoutCI.pPushConstantRanges = pcRanges.data();
 	
 	pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
@@ -228,7 +246,7 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	//cada subpass referencia un attachment
 	VkAttachmentReference colorAttachmentReference{};
 	colorAttachmentReference.attachment = 0;//indice en el array de attachments
-	colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;//el layout con el que tratarï¿½ ese attachment, en este caso como color buffer
+	colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;//el layout con el que trataré ese attachment, en este caso como color buffer
 
 	//las de depth buffer	
 	VkAttachmentDescription depthAttachment{};
@@ -244,7 +262,7 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	VkAttachmentReference depthAttachmentReference{};
 	depthAttachmentReference.attachment = 1;
 	depthAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	//cada subpass necesita descripciï¿½n
+	//cada subpass necesita descripción
 	VkSubpassDescription subpassDescription{};//la subpass de color y de depth es la misma
 	subpassDescription.pDepthStencilAttachment = &depthAttachmentReference;
 	subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;//esta subpass es de graficos
@@ -261,16 +279,16 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	renderPassCI.subpassCount = 1;
 
 	//subpass dependencies, lidian con trnasitions (especifica memory y execution dependencies entre subpasses)
-	//tenemos 3 subpasses, la que creamos, la operaciï¿½n antes y la operaciï¿½n despuï¿½s, vulkan tiene built-in dependencies que lidian con ellas pero hay que sincronizar la de la operaciï¿½n despuï¿½s
+	//tenemos 3 subpasses, la que creamos, la operación antes y la operación después, vulkan tiene built-in dependencies que lidian con ellas pero hay que sincronizar la de la operación después
 	VkSubpassDependency subpassDependency{};
-	subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL; // VK_SUBPASS_EXTERNAL se refiere a la operaciï¿½n antes o despuï¿½s dependiendo de si estï¿½ en .srcSubpass o .dstSubpass
+	subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL; // VK_SUBPASS_EXTERNAL se refiere a la operación antes o después dependiendo de si está en .srcSubpass o .dstSubpass
 	subpassDependency.dstSubpass = 0;//indice de subpass, en este caso la de color
 	//Esperamos a:
-	subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;//esperaremos a esta operaciï¿½n
-	subpassDependency.srcAccessMask = 0;//especï¿½ficamente a que 0 termine, osea a que 
+	subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;//esperaremos a esta operación
+	subpassDependency.srcAccessMask = 0;//específicamente a que 0 termine, osea a que 
 
-	subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;//esta operaciï¿½n serï¿½ la que espere
-	subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;//especï¿½ficamente esperaremos hasta que acabe y luego escribiremos
+	subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;//esta operación será la que espere
+	subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;//específicamente esperaremos hasta que acabe y luego escribiremos
 
 	renderPassCI.dependencyCount = 1;
 	renderPassCI.pDependencies = &subpassDependency;
@@ -282,7 +300,7 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	//ya crear la pipeline
 	VkGraphicsPipelineCreateInfo graphicsPipelineCI{};
 	graphicsPipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	graphicsPipelineCI.basePipelineHandle = VK_NULL_HANDLE;//opcional, es para crear subpipelines que es mï¿½s rapido que varias pipelines
+	graphicsPipelineCI.basePipelineHandle = VK_NULL_HANDLE;//opcional, es para crear subpipelines que es más rapido que varias pipelines
 	graphicsPipelineCI.basePipelineIndex = -1;//opcional, tiene que ver con parametro anterior
 	graphicsPipelineCI.layout = this->pipelineLayout;
 	graphicsPipelineCI.renderPass = this->renderPass;
@@ -305,7 +323,6 @@ asgPipeline::asgPipeline(VkFormat chosenSwapSurfaceFormat, VkFormat supportedDep
 	//Destroy shader modules as soon as the code is in te pipeline just like openGL
 	vkDestroyShaderModule(logicalDevice, vertexShaderModule, nullptr);
 	vkDestroyShaderModule(logicalDevice, fragmentShaderModule, nullptr);
-
 }
 
 void asgPipeline::del() {
