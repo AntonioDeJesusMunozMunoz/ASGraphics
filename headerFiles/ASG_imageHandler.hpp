@@ -1,3 +1,4 @@
+/*Abstraction layer between files who need images and files with unique implementation (to avoid rewriting the files who need images)*/
 #ifndef ASG_IMAGE_HANDLER_H_
 #define ASG_IMAGE_HANDLER_H_
 
@@ -12,7 +13,6 @@
 
 //TODO IDENTIFIED PROBLEMS
 //if an image need memoryType 1, and i have a memory of that type, it will use it, REGARDLESS OF IT HAVING ENOUGH SIZE OR NOT
-	//could be solved by vma implementation?
 namespace asgImageHandler {
 		//funciones
 		void initializeResources();

@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DEFECTS>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>847</LINE>
+      <COLUMN>4</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::bufferView' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::{ctor}</FUNCTION>
+    <DECORATED>??0&lt;unnamed-type-indices&gt;@Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>847</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::bufferView</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>847</LINE>
+      <COLUMN>4</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::byteOffset' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::{ctor}</FUNCTION>
+    <DECORATED>??0&lt;unnamed-type-indices&gt;@Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>847</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::byteOffset</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>847</LINE>
+      <COLUMN>4</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::componentType' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::{ctor}</FUNCTION>
+    <DECORATED>??0&lt;unnamed-type-indices&gt;@Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>847</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::componentType</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>855</LINE>
+      <COLUMN>4</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::&lt;unnamed-type-values&gt;::bufferView' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::&lt;unnamed-type-values&gt;::{ctor}</FUNCTION>
+    <DECORATED>??0&lt;unnamed-type-values&gt;@Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>855</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::&lt;unnamed-type-values&gt;::bufferView</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>855</LINE>
+      <COLUMN>4</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::&lt;unnamed-type-values&gt;::byteOffset' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::&lt;unnamed-type-values&gt;::{ctor}</FUNCTION>
+    <DECORATED>??0&lt;unnamed-type-values&gt;@Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>855</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::&lt;unnamed-type-values&gt;::byteOffset</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>860</LINE>
+      <COLUMN>2</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::count' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::{ctor}</FUNCTION>
+    <DECORATED>??0Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>860</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::count</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>860</LINE>
+      <COLUMN>2</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::isSparse' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::{ctor}</FUNCTION>
+    <DECORATED>??0Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>860</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::isSparse</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>stb_image_write.h</FILENAME>
+      <LINE>443</LINE>
+      <COLUMN>11</COLUMN>
+    </SFA>
+    <DEFECTCODE>26819</DEFECTCODE>
+    <DESCRIPTION>Unannotated fallthrough between switch labels (es.78).</DESCRIPTION>
+    <FUNCTION>stbiw__write_pixel</FUNCTION>
+    <DECORATED>?stbiw__write_pixel@@YAXPEAUstbi__write_context@@HHHHPEAE@Z</DECORATED>
+    <FUNCLINE>418</FUNCLINE>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>json.hpp</FILENAME>
+      <LINE>17316</LINE>
+      <COLUMN>27</COLUMN>
+    </SFA>
+    <DEFECTCODE>28020</DEFECTCODE>
+    <DESCRIPTION>The expression '0&lt;=_Param_(1)&amp;&amp;_Param_(1)&lt;=400-1' is not true at this call.</DESCRIPTION>
+    <FUNCTION>nlohmann::detail::serializer&lt;nlohmann::basic_json&lt;std::map,std::vector,std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt;,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::adl_serializer,std::vector&lt;unsigned char,std::allocator&lt;unsigned char&gt; &gt; &gt; &gt;::decode</FUNCTION>
+    <DECORATED>?decode@?$serializer@V?$basic_json@Vmap@std@@Vvector@2@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@_N_J_KNVallocator@2@Uadl_serializer@nlohmann@@V?$vector@EV?$allocator@E@std@@@2@@nlohmann@@@detail@nlohmann@@CAEAEAEAEAIE@Z</DECORATED>
+    <FUNCLINE>17293</FUNCLINE>
+    <PATH>
+      <SFA>
+        <FILEPATH>c:\users\antonio muñoz\source\repos\asgraphics_0_1_2\dependencies\include\tinygltf\</FILEPATH>
+        <FILENAME>json.hpp</FILENAME>
+        <LINE>17295</LINE>
+        <COLUMN>51</COLUMN>
+      </SFA>
+      <SFA>
+        <FILEPATH>c:\users\antonio muñoz\source\repos\asgraphics_0_1_2\dependencies\include\tinygltf\</FILEPATH>
+        <FILENAME>json.hpp</FILENAME>
+        <LINE>17316</LINE>
+        <COLUMN>27</COLUMN>
+      </SFA>
+    </PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>json.hpp</FILENAME>
+      <LINE>7488</LINE>
+      <COLUMN>17</COLUMN>
+    </SFA>
+    <DEFECTCODE>26819</DEFECTCODE>
+    <DESCRIPTION>Unannotated fallthrough between switch labels (es.78).</DESCRIPTION>
+    <FUNCTION>nlohmann::detail::lexer&lt;nlohmann::basic_json&lt;std::map,std::vector,std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt;,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::adl_serializer,std::vector&lt;unsigned char,std::allocator&lt;unsigned char&gt; &gt; &gt;,nlohmann::detail::iterator_input_adapter&lt;char const *&gt; &gt;::scan_comment</FUNCTION>
+    <DECORATED>?scan_comment@?$lexer@V?$basic_json@Vmap@std@@Vvector@2@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@_N_J_KNVallocator@2@Uadl_serializer@nlohmann@@V?$vector@EV?$allocator@E@std@@@2@@nlohmann@@V?$iterator_input_adapter@PEBD@detail@2@@detail@nlohmann@@AEAA_NXZ</DECORATED>
+    <FUNCLINE>7464</FUNCLINE>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>json.hpp</FILENAME>
+      <LINE>7525</LINE>
+      <COLUMN>30</COLUMN>
+    </SFA>
+    <DEFECTCODE>26819</DEFECTCODE>
+    <DESCRIPTION>Unannotated fallthrough between switch labels (es.78).</DESCRIPTION>
+    <FUNCTION>nlohmann::detail::lexer&lt;nlohmann::basic_json&lt;std::map,std::vector,std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt;,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::adl_serializer,std::vector&lt;unsigned char,std::allocator&lt;unsigned char&gt; &gt; &gt;,nlohmann::detail::iterator_input_adapter&lt;char const *&gt; &gt;::scan_comment</FUNCTION>
+    <DECORATED>?scan_comment@?$lexer@V?$basic_json@Vmap@std@@Vvector@2@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@_N_J_KNVallocator@2@Uadl_serializer@nlohmann@@V?$vector@EV?$allocator@E@std@@@2@@nlohmann@@V?$iterator_input_adapter@PEBD@detail@2@@detail@nlohmann@@AEAA_NXZ</DECORATED>
+    <FUNCLINE>7464</FUNCLINE>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>json.hpp</FILENAME>
+      <LINE>19664</LINE>
+      <COLUMN>4</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'nlohmann::basic_json&lt;std::map,std::vector,std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt;,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::adl_serializer,std::vector&lt;unsigned char,std::allocator&lt;unsigned char&gt; &gt; &gt;::m_type' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>nlohmann::basic_json&lt;std::map,std::vector,std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt;,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::adl_serializer,std::vector&lt;unsigned char,std::allocator&lt;unsigned char&gt; &gt; &gt;::{ctor}</FUNCTION>
+    <DECORATED>??$?0V?$json_ref@V?$basic_json@Vmap@std@@Vvector@2@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@_N_J_KNVallocator@2@Uadl_serializer@nlohmann@@V?$vector@EV?$allocator@E@std@@@2@@nlohmann@@@detail@nlohmann@@$0A@@?$basic_json@Vmap@std@@Vvector@2@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@_N_J_KNVallocator@2@Uadl_serializer@nlohmann@@V?$vector@EV?$allocator@E@std@@@2@@nlohmann@@QEAA@AEBV?$json_ref@V?$basic_json@Vmap@std@@Vvector@2@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@_N_J_KNVallocator@2@Uadl_serializer@nlohmann@@V?$vector@EV?$allocator@E@std@@@2@@nlohmann@@@detail@1@@Z</DECORATED>
+    <FUNCLINE>19664</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>nlohmann::basic_json&lt;std::map,std::vector,std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt;,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::adl_serializer,std::vector&lt;unsigned char,std::allocator&lt;unsigned char&gt; &gt; &gt;::m_type</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>json.hpp</FILENAME>
+      <LINE>19664</LINE>
+      <COLUMN>4</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'nlohmann::basic_json&lt;std::map,std::vector,std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt;,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::adl_serializer,std::vector&lt;unsigned char,std::allocator&lt;unsigned char&gt; &gt; &gt;::m_value' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>nlohmann::basic_json&lt;std::map,std::vector,std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt;,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::adl_serializer,std::vector&lt;unsigned char,std::allocator&lt;unsigned char&gt; &gt; &gt;::{ctor}</FUNCTION>
+    <DECORATED>??$?0V?$json_ref@V?$basic_json@Vmap@std@@Vvector@2@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@_N_J_KNVallocator@2@Uadl_serializer@nlohmann@@V?$vector@EV?$allocator@E@std@@@2@@nlohmann@@@detail@nlohmann@@$0A@@?$basic_json@Vmap@std@@Vvector@2@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@_N_J_KNVallocator@2@Uadl_serializer@nlohmann@@V?$vector@EV?$allocator@E@std@@@2@@nlohmann@@QEAA@AEBV?$json_ref@V?$basic_json@Vmap@std@@Vvector@2@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@_N_J_KNVallocator@2@Uadl_serializer@nlohmann@@V?$vector@EV?$allocator@E@std@@@2@@nlohmann@@@detail@1@@Z</DECORATED>
+    <FUNCLINE>19664</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>nlohmann::basic_json&lt;std::map,std::vector,std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt;,bool,__int64,unsigned __int64,double,std::allocator,nlohmann::adl_serializer,std::vector&lt;unsigned char,std::allocator&lt;unsigned char&gt; &gt; &gt;::m_value</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+</DEFECTS>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DEFECTS>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\STB\</FILEPATH>
+      <FILENAME>stb_image.h</FILENAME>
+      <LINE>6962</LINE>
+      <COLUMN>13</COLUMN>
+    </SFA>
+    <DEFECTCODE>6262</DEFECTCODE>
+    <DESCRIPTION>Function uses '35036' bytes of stack.  Consider moving some data to heap.</DESCRIPTION>
+    <FUNCTION>stbi__load_gif_main</FUNCTION>
+    <DECORATED>stbi__load_gif_main</DECORATED>
+    <FUNCLINE>6962</FUNCLINE>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\STB\</FILEPATH>
+      <FILENAME>stb_image.h</FILENAME>
+      <LINE>7047</LINE>
+      <COLUMN>13</COLUMN>
+    </SFA>
+    <DEFECTCODE>6262</DEFECTCODE>
+    <DESCRIPTION>Function uses '34980' bytes of stack.  Consider moving some data to heap.</DESCRIPTION>
+    <FUNCTION>stbi__gif_load</FUNCTION>
+    <DECORATED>stbi__gif_load</DECORATED>
+    <FUNCLINE>7047</FUNCLINE>
+    <PATH></PATH>
+  </DEFECT>
+</DEFECTS>

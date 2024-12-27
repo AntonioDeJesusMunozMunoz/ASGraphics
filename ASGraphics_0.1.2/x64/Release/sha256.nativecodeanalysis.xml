@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DEFECTS>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\</FILEPATH>
+      <FILENAME>sha256.cpp</FILENAME>
+      <LINE>296</LINE>
+      <COLUMN>29</COLUMN>
+    </SFA>
+    <DEFECTCODE>6386</DEFECTCODE>
+    <DESCRIPTION>Buffer overrun while writing to 'this-&gt;m_buffer'.</DESCRIPTION>
+    <FUNCTION>SHA256::add</FUNCTION>
+    <DECORATED>?add@SHA256@@QEAAXPEBX_K@Z</DECORATED>
+    <FUNCLINE>259</FUNCLINE>
+    <PROBABILITY>1</PROBABILITY>
+    <RANK>4</RANK>
+    <CATEGORY>
+      <RULECATEGORY>mspft</RULECATEGORY>
+    </CATEGORY>
+    <PATH>
+      <SFA>
+        <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\</FILEPATH>
+        <FILENAME>sha256.cpp</FILENAME>
+        <LINE>261</LINE>
+        <COLUMN>17</COLUMN>
+      </SFA>
+      <SFA>
+        <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\</FILEPATH>
+        <FILENAME>sha256.cpp</FILENAME>
+        <LINE>263</LINE>
+        <COLUMN>19</COLUMN>
+        <KEYEVENT>
+          <ID>1</ID>
+          <KIND>branch</KIND>
+          <IMPORTANCE>Full</IMPORTANCE>
+          <MESSAGE>Enter this branch, (assume 'm_bufferSize&gt;0')</MESSAGE>
+        </KEYEVENT>
+      </SFA>
+      <SFA>
+        <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\</FILEPATH>
+        <FILENAME>sha256.cpp</FILENAME>
+        <LINE>265</LINE>
+        <COLUMN>24</COLUMN>
+        <KEYEVENT>
+          <ID>2</ID>
+          <KIND>branch</KIND>
+          <IMPORTANCE>Full</IMPORTANCE>
+          <MESSAGE>Skip this loop, (assume '&lt;branch condition&gt;' is false)</MESSAGE>
+        </KEYEVENT>
+      </SFA>
+      <SFA>
+        <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\</FILEPATH>
+        <FILENAME>sha256.cpp</FILENAME>
+        <LINE>273</LINE>
+        <COLUMN>19</COLUMN>
+        <KEYEVENT>
+          <ID>3</ID>
+          <KIND>branch</KIND>
+          <IMPORTANCE>Full</IMPORTANCE>
+          <MESSAGE>Skip this branch, (assume 'm_bufferSize==BlockSize' is false)</MESSAGE>
+        </KEYEVENT>
+      </SFA>
+      <SFA>
+        <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\</FILEPATH>
+        <FILENAME>sha256.cpp</FILENAME>
+        <LINE>281</LINE>
+        <COLUMN>15</COLUMN>
+        <KEYEVENT>
+          <ID>4</ID>
+          <KIND>branch</KIND>
+          <IMPORTANCE>Full</IMPORTANCE>
+          <MESSAGE>Skip this branch, (assume 'numBytes==0' is false)</MESSAGE>
+        </KEYEVENT>
+      </SFA>
+      <SFA>
+        <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\</FILEPATH>
+        <FILENAME>sha256.cpp</FILENAME>
+        <LINE>285</LINE>
+        <COLUMN>18</COLUMN>
+        <KEYEVENT>
+          <ID>5</ID>
+          <KIND>branch</KIND>
+          <IMPORTANCE>Full</IMPORTANCE>
+          <MESSAGE>Skip this loop, (assume 'numBytes&gt;=BlockSize' is false)</MESSAGE>
+        </KEYEVENT>
+      </SFA>
+      <SFA>
+        <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\</FILEPATH>
+        <FILENAME>sha256.cpp</FILENAME>
+        <LINE>294</LINE>
+        <COLUMN>18</COLUMN>
+        <KEYEVENT>
+          <ID>6</ID>
+          <KIND>branch</KIND>
+          <IMPORTANCE>Full</IMPORTANCE>
+          <MESSAGE>Enter this loop, (assume 'numBytes&gt;0')</MESSAGE>
+        </KEYEVENT>
+      </SFA>
+      <SFA>
+        <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\src\dependenciesSources\</FILEPATH>
+        <FILENAME>sha256.cpp</FILENAME>
+        <LINE>296</LINE>
+        <COLUMN>29</COLUMN>
+        <KEYEVENT>
+          <ID>7</ID>
+          <KIND>usage</KIND>
+          <IMPORTANCE>Essential</IMPORTANCE>
+          <MESSAGE>Invalid write to 'this-&gt;m_buffer[65]', (writable range is 0 to 63)</MESSAGE>
+        </KEYEVENT>
+      </SFA>
+    </PATH>
+  </DEFECT>
+</DEFECTS>

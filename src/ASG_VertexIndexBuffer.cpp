@@ -1,5 +1,7 @@
 #include <ASG_VertexIndexBuffer.hpp>
 
+#include <algorithm>//for min
+
 asgVIBuffer::asgVIBuffer(VkDeviceSize vertexBufferSize, VkDeviceSize indexBufferSize) {
 	//creo vertexBuffer
 	VkBufferCreateInfo VertexBufferCI{};
@@ -195,7 +197,7 @@ void asgVIBuffer::resize(VkDeviceSize vertexSizeRequired, VkDeviceSize indexSize
 
 	//paso los contenidos
 	copyBuffer(this->vertexHandle, 0, newVertexBuffer, 0, this->vertexByteSize);//con VK_WHOLE_SIZE daba validation error diciendo que era un numero muy grande
-	copyBuffer(this->indexHandle, 0, newIndexBuffer, 0, this->indexByteSize);
+	copyBuffer(this->indexHandle, 0, newIndexBuffer, 0, std::min(this->indexByteSize, indexSizeRequired));//puede que haya alojado mas index bytes inicialmente de los que necesitaba, si vertex necesita resize pero index no, creara un buffer mas pequeño y podria dar error
 
 	//destruyo lo anterior
 	vkDestroyBuffer(logicalDevice, this->vertexHandle, nullptr);

@@ -1,4 +1,4 @@
-#version 450
+#version 450//you could embed these shaders into c++ code so that asg only need the static.lib and the header, but you are going to still develop these along side sw
 
 //descriptor input
 layout(binding = 0) uniform matrixTransformations{//notese que no tiene in

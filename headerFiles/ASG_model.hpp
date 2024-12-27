@@ -1,5 +1,5 @@
-#ifndef ASG_MODEL_LOADER_H_
-#define ASG_MODEL_LOADER_H_
+#ifndef ASG_MODEL_H_
+#define ASG_MODEL_H_
 
 //dependencies
 #include <GLM/glm.hpp>

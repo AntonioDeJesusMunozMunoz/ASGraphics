@@ -8,27 +8,125 @@
 
 //local
 #include <ASG_imageHandler.hpp>
-#include <ASG_descriptorSets.hpp>
+#include <ASG_renderPass_deffered.hpp>
 
 //variables
 std::vector<std::string> loadedImagesPathsAndDigests;//los hiba a poner por separado pero al final ambos era string y se manejaban igual
 std::vector<asgDeviceMemory> memories;
 uint32_t numOfMaterialsLoaded;
-std::map<std::string, VkImage> albedoMaps;//estos pueden ser más que el número de materiales cargados
+
+std::vector<std::pair<std::string, VkImage>> albedoMaps;//estos pueden ser más que el número de materiales cargados
 std::vector<VkImageView> albedoImageViews;//si necesito conseguir la imagen relacionada al imageView podria considerar un mapa
-std::unique_ptr<descriptorSetImageUpdater> dsImageUpdater;
+VkSampler defaultAlbedoSampler;
+
+//std::unique_ptr<descriptorSetImageUpdater> dsImageUpdater;
 
 SHA256 sha256;
 
-//declaraciones
-bool isImageAlreadyLoaded(std::string pathOrDigest);
-asgDeviceMemory* getRightMemory(VkMemoryRequirements memoryRequirements);
+//helpers
+bool isImageAlreadyLoaded(std::string pathOrDigest) {
+	for (std::string currPath : loadedImagesPathsAndDigests) {
+		if (currPath == pathOrDigest) {
+			if (validationLayersEnabled) {
+				printf("tried to load already loaded image");
+			}
+			return true;
+		}
+	}
 
+	return false;
+}
+asgDeviceMemory* getRightMemory(VkMemoryRequirements memoryRequirements) {
+	uint32_t rightMemoryTypeIndex = findRigthMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-//initialize atributes, doing so outside of a function would fail bc it would initialize before asgInit
-void asgImageHandler::initializeResources() {
+	for (int i = 0; i < memories.size(); i++) {
+		if (memories[i].memoryTypeIndex == rightMemoryTypeIndex) {
+			return &memories[i];
+		}
+	}
+
+	//si no la encuentra, la alojamos
+	VkMemoryAllocateInfo memoryAI{};
+	VkDeviceMemory currMemory;
+	uint32_t allocationSize = 50000000;
+
+	while (allocationSize < memoryRequirements.size) {
+		allocationSize *= 2;
+	}
+
+	memoryAI.allocationSize = allocationSize;//alojo la cantidad que me dice que debo alojar, no el tamaño real
+	memoryAI.memoryTypeIndex = rightMemoryTypeIndex;
+	memoryAI.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+
+	if (vkAllocateMemory(logicalDevice, &memoryAI, nullptr, &currMemory) != VK_SUCCESS) {
+		throw std::runtime_error("Could not allocate image memory");
+	}
+
+	asgDeviceMemory newMemory;
+	newMemory.handle = currMemory;
+	newMemory.memoryTypeIndex = rightMemoryTypeIndex;
+	newMemory.ocupiedBytes = 0;
+	newMemory.size = allocationSize;
+
+	memories.push_back(newMemory);
+	return &memories[memories.size() - 1];
+}
+void addAlbedoMap(VkImageView albedoMapImageView) {
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		VkDescriptorImageInfo currII{};//tengo el sampler y la textura en el descriptor set de los uniforms, ndmas en otro binding
+		currII.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;//en este lo tengo en createTextureImage
+		currII.imageView = albedoMapImageView;
+		currII.sampler = defaultAlbedoSampler;
+
+		VkWriteDescriptorSet currWriteDescriptorSets{};//No funcionaba con arrays de c???
+		currWriteDescriptorSets.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		currWriteDescriptorSets.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		currWriteDescriptorSets.dstArrayElement = defferedPassFunc::gBufferSubPass::amountOfLoadedAlbedos;
+		currWriteDescriptorSets.descriptorCount = 1;//no need for arbitrary size because i only update one at a time
+		currWriteDescriptorSets.dstSet = renderPasses[0].subPasses[0].descriptorSets[i];//TODO DEBUG cambie de 1 a 0 el indice de subPasses[ESTE]
+
+		currWriteDescriptorSets.dstBinding = 1;
+
+		currWriteDescriptorSets.pImageInfo = &currII;//no es necesario poner los otros en nullptr?
+		currWriteDescriptorSets.pBufferInfo = nullptr;
+		currWriteDescriptorSets.pTexelBufferView = nullptr;
+		vkUpdateDescriptorSets(logicalDevice, 1, &currWriteDescriptorSets, 0, nullptr);// lo de copy descriptors es ps para copiarlos
+	}
+
+	defferedPassFunc::gBufferSubPass::amountOfLoadedAlbedos++;
+}
+
+//func
+void asgImageHandler::initializeResources() {//initialize atributes, doing so outside of a function would fail bc it would initialize before asgInit
 	numOfMaterialsLoaded = 0;
-	dsImageUpdater = std::make_unique<dsImageUpdater1>();
+	
+	//Sampler
+	VkSamplerCreateInfo testSamplerCI{};
+	testSamplerCI.unnormalizedCoordinates = VK_FALSE;//para que use [0-1) en vez de [0,imageLong)
+	testSamplerCI.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	testSamplerCI.compareEnable = VK_FALSE;
+	testSamplerCI.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	testSamplerCI.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	testSamplerCI.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	testSamplerCI.magFilter = VK_FILTER_LINEAR;//para que no se vea blocky
+	testSamplerCI.minFilter = VK_FILTER_LINEAR;
+	
+	VkPhysicalDeviceProperties physicalDeviceProperties;
+	vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+	testSamplerCI.anisotropyEnable = VK_TRUE;
+	testSamplerCI.maxAnisotropy = physicalDeviceProperties.limits.maxSamplerAnisotropy;
+
+	testSamplerCI.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;//solo se usa con clamp to border
+	testSamplerCI.compareOp = VK_COMPARE_OP_ALWAYS;
+
+	testSamplerCI.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;//estos 4 son de mipmaping
+	testSamplerCI.mipLodBias = 0.0f;
+	testSamplerCI.minLod = 0.0f;
+	testSamplerCI.maxLod = 0.0f;
+	if (vkCreateSampler(logicalDevice, &testSamplerCI, nullptr, &defaultAlbedoSampler) != VK_SUCCESS) {
+		throw std::runtime_error("could not create test sampler");
+	}
+
 }
 
 uint32_t asgImageHandler::loadAlbedoMap(std::string path) {
@@ -137,7 +235,7 @@ uint32_t asgImageHandler::loadAlbedoMap(std::string path) {
 	transitionImageLayout(currImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	//añadir imagen al albedomap
-	albedoMaps.insert(std::make_pair(path,currImage));
+	albedoMaps.push_back(std::make_pair(path,currImage));
 
 	//createImageView
 	VkImageViewCreateInfo currImageViewCI{};
@@ -164,7 +262,7 @@ uint32_t asgImageHandler::loadAlbedoMap(std::string path) {
 	
 	albedoImageViews.push_back(currImageView);
 
-	dsImageUpdater->addAlbedoMap(albedoImageViews[albedoImageViews.size() - 1]);
+	addAlbedoMap(albedoImageViews[albedoImageViews.size() - 1]);
 
 	//cleanup
 	vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
@@ -255,7 +353,7 @@ uint32_t asgImageHandler::loadAlbedoMap(std::vector<unsigned char> data, uint32_
 	transitionImageLayout(currImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	//añadir imagen al albedomap
-	albedoMaps.insert(std::make_pair(digest, currImage));
+	albedoMaps.push_back(std::make_pair(digest, currImage));
 
 	//createImageView
 	VkImageViewCreateInfo currImageViewCI{};
@@ -282,62 +380,13 @@ uint32_t asgImageHandler::loadAlbedoMap(std::vector<unsigned char> data, uint32_
 
 	albedoImageViews.push_back(currImageView);
 
-	dsImageUpdater->addAlbedoMap(albedoImageViews[albedoImageViews.size() - 1]);
+	addAlbedoMap(albedoImageViews[albedoImageViews.size() - 1]);
 
 	//cleanup
 	vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
 	vkFreeMemory(logicalDevice, stagingMemory, nullptr);
 
 	return static_cast<uint32_t>(albedoMaps.size() - 1);
-}
-
-bool isImageAlreadyLoaded(std::string pathOrDigest) {
-	for (std::string currPath : loadedImagesPathsAndDigests) {
-		if (currPath == pathOrDigest) {
-			if (validationLayersEnabled) {
-				printf("tried to load already loaded image");
-			}
-			return true;
-		}
-	}
-
-	return false;
-}
-
-asgDeviceMemory* getRightMemory(VkMemoryRequirements memoryRequirements) {
-	uint32_t rightMemoryTypeIndex = findRigthMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	for (int i = 0; i < memories.size(); i++) {
-		if (memories[i].memoryTypeIndex == rightMemoryTypeIndex) {
-			return &memories[i];
-		}
-	}
-
-	//si no la encuentra, la alojamos
-	VkMemoryAllocateInfo memoryAI{};
-	VkDeviceMemory currMemory;
-	uint32_t allocationSize = 50000000;
-	
-	while (allocationSize < memoryRequirements.size) {
-		allocationSize *= 2;
-	}
-
-	memoryAI.allocationSize = allocationSize;//alojo la cantidad que me dice que debo alojar, no el tamaño real
-	memoryAI.memoryTypeIndex = rightMemoryTypeIndex;
-	memoryAI.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-
-	if (vkAllocateMemory(logicalDevice, &memoryAI, nullptr, &currMemory) != VK_SUCCESS) {
-		throw std::runtime_error("Could not allocate image memory");
-	}
-
-	asgDeviceMemory newMemory;
-	newMemory.handle = currMemory;
-	newMemory.memoryTypeIndex = rightMemoryTypeIndex;
-	newMemory.ocupiedBytes = 0;
-	newMemory.size = allocationSize;
-
-	memories.push_back(newMemory);
-	return &memories[memories.size() - 1];
 }
 
 void asgImageHandler::deleteResources() {
@@ -353,39 +402,5 @@ void asgImageHandler::deleteResources() {
 		vkFreeMemory(logicalDevice, currMemory.handle, nullptr);
 	}
 
-	dsImageUpdater->del();
-
-//	delete dsImageUpdater;
+	vkDestroySampler(logicalDevice, defaultAlbedoSampler, nullptr);
 }
-
-/*
-problema: necesito que los descriptor sets esten actualizados para cuando vaya a dibujar
-
-CUANDO NECESITO ACTUALIZARLOS
-//los descriptor sets deben de tener la información correcta de:
-	//que uniform buffers usan@
-		//las que tego de momento son matrix, osea que no las necesito actualizar@
-	//que image views y samplers usan
-		//no se que imagenes esten cargadas, así que necesito actualizarlas cada vez que las imágenes cargadas cambien
-	//potencialmente más
-
-CUANDO PUEDO ACTUALIZARLOS
-//al inicio
-	//pero no conozco que imágenes están cargadas
-	//pero podría conocer que vkImages están creadas
-		//pero de echo no puedo pq ps necesito saber el tamaño de la imagen
-			//pero podría estandarisar el tamaño de las imágenes
-				// -- flexibilidad creativa
-				// ++ facilidad de programar pq no actualizo los descriptorSets en absoluto
-				// + performance pq no actualizo los descriptor sets
-
-//cada frame X
-	//como no los puedo actualizar mientras se dibuja un frame,introduce problemas de sync X
-		//como sync es complicado, esto me importa mucho
-
-//cada draw call X
-	//no es industry standard
-
-
-//actualizarlos es costoso: optimización premetura == no me importa
-*/

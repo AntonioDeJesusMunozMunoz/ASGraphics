@@ -1,7 +1,7 @@
-//La usaré metiendo a mi dependencies/lib ASGraphics.lib y a dependencies/include ASGraphics.hpp
+ï»¿//La usarï¿½ metiendo a mi dependencies/lib ASGraphics.lib y a dependencies/include ASGraphics.hpp
 #include <ASGraphics.hpp>
 
-//aquí van los include que no necesita ver quien usa esto para no contaminar el enviroment
+//aquï¿½ van los include que no necesita ver quien usa esto para no contaminar el enviroment
 //builtin
 #define NOMINMAX//para que windows no los defina
 #include <cstdio>
@@ -23,15 +23,14 @@
 #include <ASG_utils.hpp>
 #include <ASG_descriptorSets.hpp>
 #include <ASG_swapChain.hpp>
-#include <ASG_graphicsPipeline.hpp>
 #include <ASG_VertexIndexBuffer.hpp>
 #include <ASG_imageHandler.hpp>
 #include <ASG_model.hpp>
+#include <ASG_renderPass.hpp>
+#include <ASG_renderPass_deffered.hpp>
 
 
 /*definitions echas por mi*/
-#define SCREENLONG 500
-#define SCREENTALL 500
 
 /*Structs*/
 
@@ -45,7 +44,7 @@ const std::vector<const char*> usedExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAM
 const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 
 #ifdef NDEBUG
-const bool validationLayersEnabled = false;
+const bool validationLayersEnabled = false;//TODO creo q esto no funciona como extern porque no tiene extern
 #else
 const bool validationLayersEnabled = true;
 #endif
@@ -55,10 +54,6 @@ VkInstance vulkanInstance;
 
 //swapchain
 std::unique_ptr<asgSwapChain> swapChain;
-std::vector<VkFramebuffer>frameBuffers;
-
-//graphicsPipeline
-std::unique_ptr<asgPipeline> graphicsPipeline;
 
 //buffers
 std::map<std::string, std::unique_ptr<asgVIBuffer>> materialsBuffers;
@@ -117,7 +112,7 @@ bool isPhysicalDeviceSuitable(VkPhysicalDevice device) {
 	}
 
 	bool swapChainHasAllRequirements = false;
-	if (extensionsSupported) {//debemos checar la swap chain solo si ya nos aseguramos que su extensión si tiene support
+	if (extensionsSupported) {//debemos checar la swap chain solo si ya nos aseguramos que su extensiï¿½n si tiene support
 
 		SwapChainSupportDetails swapChainDetails = getSwapChainSupportDetails(device);
 		swapChainHasAllRequirements = !swapChainDetails.formats.empty() && !swapChainDetails.presentModes.empty();
@@ -134,11 +129,11 @@ bool checkValidationLayerSupport() {
 	std::vector<VkLayerProperties> supportedLayers(layerCount);
 	vkEnumerateInstanceLayerProperties(&layerCount, supportedLayers.data());
 
-	//checamos si las validation layers están en la lista de supported layers
+	//checamos si las validation layers estï¿½n en la lista de supported layers
 	for (const char* layer : validationLayers) {
 		bool layerIsSupported = false;
 		for (const auto& currSupportedLayer : supportedLayers) {
-			if (strcmp(layer, currSupportedLayer.layerName) == 0) {
+			if (strcmp(layer, currSupportedLayer.layerName) == 0) {//TODO optimizar?
 				layerIsSupported = true;
 			}
 		}
@@ -156,7 +151,7 @@ bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
 	std::vector<VkExtensionProperties> supportedExtensions(numExtension);
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &numExtension, supportedExtensions.data());
 
-	//checamos si las extensiones que necesitamos están en las extensiones que tienen soporte, podrías hacer 2 for loop, pero ps no
+	//checamos si las extensiones que necesitamos estï¿½n en las extensiones que tienen soporte, podrï¿½as hacer 2 for loop, pero ps no
 	std::set<std::string> requiredExtensions(usedExtensions.begin(), usedExtensions.end());
 
 	for (const auto& extension : supportedExtensions) {
@@ -176,26 +171,13 @@ void remakeSwapChain() {
 
 //init
 void createFrameBuffers() {
-	frameBuffers.resize(swapChain->images.size());
-	for (size_t i = 0; i < swapChain->views.size(); i++) {//creamos framebuffer de cada color attachment  
-		VkImageView currAttachments[] = { swapChain->views[i], swapChain->depthBufferImageView };//solo es el de color pero ps luego le meteremos mas attachments //podemos usar el mismo depthBuffer porque solo una subpass ocurre simultaneamente debido a nuestros semáforos
-		VkFramebufferCreateInfo currCI{};
-		currCI.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		currCI.renderPass = graphicsPipeline->renderPass; //decimos que debe ser compatible con esta render pass
-		currCI.attachmentCount = 2;
-		currCI.pAttachments = currAttachments;
-		currCI.width = swapChain->swapExtent.width;
-		currCI.height = swapChain->swapExtent.height;
-		currCI.layers = 1;
-
-		if (vkCreateFramebuffer(logicalDevice, &currCI, nullptr, &(frameBuffers[i])) != VK_SUCCESS) {
-			throw std::runtime_error("could not create frame buffer");
-		}
+	for (auto& renderPass : renderPasses) {
+		renderPass.createFrameBuffers(*swapChain.get());
 	}
 }
-void destroyFrameBuffers() {
-	for (auto currFrameBuffer : frameBuffers) {//debemos destruirlo antes de la render pass e image views
-		vkDestroyFramebuffer(logicalDevice, currFrameBuffer, nullptr);
+void destroyFrameBuffers() {	
+	for (auto& renderPass : renderPasses) {//debemos destruirlo antes de la render pass e image views
+		renderPass.destroyFrameBuffers();
 	}
 }
 
@@ -219,12 +201,31 @@ void asgInit() {
 
 	/*window creation*/
 	glfwInit();
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);//como es vulkan tenemos que hacer algo especial para rezizable windows
-	ventana = glfwCreateWindow(SCREENLONG, SCREENTALL, "uno", NULL, NULL);
-	glfwSetFramebufferSizeCallback(ventana, frameBufferResizeCallBack);
+	
+	// Get the primary monitor
+	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+	if (!monitor) {
+		glfwTerminate();
+		throw std::runtime_error("Failed to get monitor\n");
+	}
 
-	/*crear applicación*/
+	// Get the video mode of the monitor
+	const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+	if (!mode) {
+		glfwTerminate();
+		throw std::runtime_error("Failed to get video mode\n");
+	}
+
+	// Create a fullscreen window
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);//como es vulkan tenemos que hacer algo especial para rezizable windows
+	//ventana = glfwCreateWindow(mode->width, mode->height, "Fullscreen Window", monitor, nullptr);
+
+	//create non fullscreen window for debugging
+	ventana = glfwCreateWindow(500, 500, "window", nullptr, nullptr);
+
+	glfwSetFramebufferSizeCallback(ventana, frameBufferResizeCallBack);
+	/*crear applicaciï¿½n*/
 
 	// app info
 	VkApplicationInfo appInfo{};
@@ -255,7 +256,7 @@ void asgInit() {
 		instanceCI.enabledLayerCount = 0;
 	}
 
-	//cheacar si si están bien las validation layers
+	//cheacar si si estï¿½n bien las validation layers
 	if (validationLayersEnabled && !checkValidationLayerSupport()) {
 		throw std::runtime_error("one or more validation layers are not supported");
 	}
@@ -264,12 +265,12 @@ void asgInit() {
 		throw std::runtime_error("could not create vulkan instance");
 	}
 
-	/*Creamos window surface*/ //debe ser creada justo después de la instance porque influencia la decisión de physical device
+	/*Creamos window surface*/ //debe ser creada justo despuï¿½s de la instance porque influencia la decisiï¿½n de physical device
 	if (glfwCreateWindowSurface(vulkanInstance, ventana, nullptr, &windowSurface) != VK_SUCCESS) {//glfw nos ayuda a saltarnos 30000000 lineas
 		throw std::runtime_error("could not create window surface");
 	}
 
-	/*elegimos la targeta gráfica (physical device)*/
+	/*elegimos la targeta grï¿½fica (physical device)*/
 	//conseguimos lista de devices
 	uint32_t ndevices = 0;
 	vkEnumeratePhysicalDevices(vulkanInstance, &ndevices, nullptr);
@@ -294,7 +295,7 @@ void asgInit() {
 	}
 
 	/*hacemos logical device*/
-	//especificamos las queues que se crearán
+	//especificamos las queues que se crearï¿½n
 	queueFamilyIndices selectedQueueFamilies = getSelectedQueueFamilies(physicalDevice);
 	float allQueuePriority = 1.0f;//todas van a tener la misma prioridad de momento
 
@@ -312,8 +313,8 @@ void asgInit() {
 		queueCreateInfos.push_back(queueCreateInfo);
 	}
 
-	//especificamos las features que se usarán
-	VkPhysicalDeviceFeatures deviceFeaturesUsed{};//ninguna en especial así que dejamos todo en VK_FALSE
+	//especificamos las features que se usarï¿½n
+	VkPhysicalDeviceFeatures deviceFeaturesUsed{};//ninguna en especial asï¿½ que dejamos todo en VK_FALSE
 	deviceFeaturesUsed.samplerAnisotropy = VK_TRUE;//Character development
 
 	///hacemos createinfo
@@ -323,7 +324,7 @@ void asgInit() {
 	logicalDeviceCI.pQueueCreateInfos = queueCreateInfos.data();
 	logicalDeviceCI.pEnabledFeatures = &deviceFeaturesUsed;
 
-	//Las siguientes están deprecadas?, pero para compatibilidad se pueden poner
+	//Las siguientes estï¿½n deprecadas?, pero para compatibilidad se pueden poner
 	logicalDeviceCI.enabledExtensionCount = static_cast<uint32_t>(usedExtensions.size());
 	logicalDeviceCI.ppEnabledExtensionNames = usedExtensions.data();
 	if (validationLayersEnabled) {
@@ -340,7 +341,7 @@ void asgInit() {
 	}
 
 	//conseguimos las queueHandles que se hicieron al mismo tiempo que el logical device
-	vkGetDeviceQueue(logicalDevice, selectedQueueFamilies.graphicsFamilyIndex, 0, &graphicsQueueHandle); // en queue index va su indice de queue de esta familia, solo tenemos uno de cada familia así que es 0 en todos.
+	vkGetDeviceQueue(logicalDevice, selectedQueueFamilies.graphicsFamilyIndex, 0, &graphicsQueueHandle); // en queue index va su indice de queue de esta familia, solo tenemos uno de cada familia asï¿½ que es 0 en todos.
 	vkGetDeviceQueue(logicalDevice, selectedQueueFamilies.presentFamilyIndex, 0, &presentQueueHandle);
 	vkGetDeviceQueue(logicalDevice, selectedQueueFamilies.transferFamilyIndex, 0, &transferQueueHandle);
 
@@ -366,7 +367,7 @@ void asgInit() {
 	}
 
 	/*Alojamos los command buffers locales*/
-	//alojamos la memoria para los buffers//automáticamente desalojados al destruir su pool
+	//alojamos la memoria para los buffers//automï¿½ticamente desalojados al destruir su pool
 	VkCommandBufferAllocateInfo commandBufferAlocateInfo{};
 	commandBufferAlocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	commandBufferAlocateInfo.commandPool = commandPool;
@@ -378,15 +379,14 @@ void asgInit() {
 	}
 
 	swapChain = std::make_unique<asgSwapChain>();
-	graphicsPipeline = std::make_unique<asgPipeline>(swapChain->surfaceFormat.format, swapChain->depthBufferFormat);
-	createFrameBuffers();
+	createRenderPasses(*swapChain.get());
 
-	/*creamos primitivos de sincronización*/
+	/*creamos primitivos de sincronizaciÃ³n*/
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 
-		VkFenceCreateInfo fenceCI{};//de echo estos primitivos no tienen parámetros, esto es para forward compatibility
+		VkFenceCreateInfo fenceCI{};//de echo estos primitivos no tienen parï¿½metros, esto es para forward compatibility
 		fenceCI.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;//ps pa que en el primer frame diga inmediatamente que ya terminó de dibujar el anterior
+		fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;//ps pa que en el primer frame diga inmediatamente que ya terminï¿½ de dibujar el anterior
 
 		VkSemaphoreCreateInfo semaforoCI{};
 		semaforoCI.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -398,17 +398,17 @@ void asgInit() {
 		}
 	}
 
-	initializeDescriptorSets(graphicsPipeline.get());
+	//initializeDescriptorSets(&renderPasses[0].subPasses[0].pipeline);//TODO
 	asgImageHandler::initializeResources();
 
 	//inicializo las matrices
 	MatrixTransformations matrixTransformations;//maybe all 3 matrices will change, view because of camera movement and proj because of window resize
 	matrixTransformations.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	matrixTransformations.proj = glm::perspective(glm::radians(90.0f), swapChain->swapExtent.width / (float)swapChain->swapExtent.height, 0.1f, 10.0f);
+	matrixTransformations.proj = glm::perspective(glm::radians(90.0f), swapChain->swapExtent.width / (float)swapChain->swapExtent.height, 0.01f, 500.0f);
 	matrixTransformations.proj[1][1] *= -1;//cambiamos el signo de la Y porque en vulkan la Y crece hacia abajo
-	
-	for (int i = 0; i < mappedUniformBufferMemories.size(); i++) {
-		memcpy(mappedUniformBufferMemories[i], &matrixTransformations, sizeof(matrixTransformations));
+
+	for (int i = 0; i < defferedPassFunc::gBufferSubPass::mappedUniformBufferMemories.size(); i++) {
+		memcpy(defferedPassFunc::gBufferSubPass::mappedUniformBufferMemories[i], &matrixTransformations, sizeof(matrixTransformations));
 	}
 
 
@@ -455,26 +455,26 @@ asgModelHandle asgLoadModel(std::string pathToModel) {
 	}
 	if (validationLayersEnabled) {
 		std::cout << err;
-		printf("\namount of scenes:%zu, default scene:%i", tgModel.scenes.size(), tgModel.defaultScene);
+		printf("\namount of scenes:%zu, default scene:%i\n", tgModel.scenes.size(), tgModel.defaultScene);
 	}
 
 	//make model
 	models.emplace_back(pathToModel, tgModel);
-
+	
 	//make the model handle
 	asgModelHandle returnHandle(static_cast<uint32_t>(models.size() - 1));
 
 	if (validationLayersEnabled) {
 		printf("\nIF A MODELS MATERIAL LOOK GLITCHED ITS BECAUSE THE SWITCH FOR ALBEDO MAPS DOESNT SUPPORT ITS INDEX");
 	}
-	return returnHandle;	
+	return returnHandle;
 }
 
 void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw) {
 	//wait until can draw curr frame
 	vkWaitForFences(logicalDevice, 1, &frameDrawnFences[currFrameDrawn], VK_FALSE, UINT64_MAX);//estoy dibujando 1 frame al mismo tiempo
 
-	//conseguir framebuffer: señaliza got frame buffer image semaforo
+	//conseguir framebuffer: seï¿½aliza got frame buffer image semaforo
 	uint32_t imageIndex;
 	VkResult resultRelatedToSwapChain = vkAcquireNextImageKHR(logicalDevice, swapChain->handle, UINT64_MAX, gotframeBufferImageSemaforos[currFrameDrawn], VK_NULL_HANDLE, &imageIndex);
 	if (resultRelatedToSwapChain == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -490,7 +490,7 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 
 	//reset frame specific resources
 	vkResetFences(logicalDevice, 1, &frameDrawnFences[currFrameDrawn]);//we are here wich means we are actually working so:
-	vkResetCommandBuffer(commandBuffers[currFrameDrawn], 0);//el segundo parámetro es una bitmask para flags
+	vkResetCommandBuffer(commandBuffers[currFrameDrawn], 0);//el segundo parï¿½metro es una bitmask para flags
 
 	for (auto& modelHandle : modelsToDraw) {
 		//actualiza las matrices de las meshes que se dibujaran
@@ -503,30 +503,31 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 			}
 		}
 	}
-	
+
 	//paso las matrices al uniform buffer
 	int loadedMatrices = 0;
 	for (auto& materialPrimitivePair : materialsPrimitives) {//printf("material: %s", materialPrimitivePair.first.c_str());
 		for (auto& primitive : materialPrimitivePair.second) {
-			if(primitive->toBeDrawn){//only load it if the primitive is being drawn
-				memcpy(static_cast<void*>(static_cast<unsigned char*>(mappedMeshModelMatricesBuffers[currFrameDrawn]) + loadedMatrices * 64), &primitive->currTransform, 64);//64 is the size of glm::mat4
+			if (primitive->toBeDrawn) {//only load it if the primitive is being drawn
+				memcpy(static_cast<void*>(static_cast<unsigned char*>(defferedPassFunc::gBufferSubPass::mappedMeshModelMatricesBuffers[currFrameDrawn]) + loadedMatrices * 64), &primitive->currTransform, 64);//64 is the size of glm::mat4
 				primitive->matrixIndex = loadedMatrices;
 				loadedMatrices++;
 			}
-			
+
 		}
+
 	}
-	
+
 	//inicializo las matrices
 	MatrixTransformations matrixTransformations;//maybe all 3 matrices will change, view because of camera movement and proj because of window resize
 	matrixTransformations.view = viewMatrix;
-	matrixTransformations.proj = glm::perspective(glm::radians(90.0f), swapChain->swapExtent.width / (float)swapChain->swapExtent.height, 0.01f, 10.0f);
+	matrixTransformations.proj = glm::perspective(glm::radians(90.0f), swapChain->swapExtent.width / (float)swapChain->swapExtent.height, 0.01f, 500.0f);
 	matrixTransformations.proj[1][1] *= -1;//cambiamos el signo de la Y porque en vulkan la Y crece hacia abajo
-	
-	for (int i = 0; i < mappedUniformBufferMemories.size(); i++) {
-		memcpy(mappedUniformBufferMemories[i], &matrixTransformations, sizeof(matrixTransformations));
+
+	for (int i = 0; i < defferedPassFunc::gBufferSubPass::mappedUniformBufferMemories.size(); i++) {
+		memcpy(defferedPassFunc::gBufferSubPass::mappedUniformBufferMemories[i], &matrixTransformations, sizeof(matrixTransformations));
 	}
-	
+
 	//iniciar grabacion de cmd buffer
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -540,25 +541,27 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 	//iniciar render pass
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = graphicsPipeline->renderPass;
-	renderPassInfo.framebuffer = frameBuffers[imageIndex];
+	renderPassInfo.renderPass = renderPasses[0].handle;
+	renderPassInfo.framebuffer = renderPasses[0].framebuffers[imageIndex];
 	renderPassInfo.renderArea.offset = { 0,0 };
 	renderPassInfo.renderArea.extent = swapChain->swapExtent;
 
-	VkClearValue clearValues[2];//EL ORDEN DE ESTOS CLEAR VALUES DEBE SER IDENTICO AL DE LOS ATTACHMENTS
-	clearValues[0].color = { 0.4f,0.2f,0.1f };//POSIBLE BUG SOURCE PQ NO INICALIZO LOS STRUCTS
-	clearValues[1].depthStencil = { 1.0f, 0 };//los pongo todos en 1.0f, el valor de profundidad más lejano, el 0 es stencil
+	std::vector<VkClearValue> clearValues(4);//EL ORDEN DE ESTOS CLEAR VALUES DEBE SER IDENTICO AL DE LOS ATTACHMENTS
+	clearValues[0].color = { 0.4f,0.2f,0.1f };//POSIBLE BUG SOURCE PQ NO INICALIZO LOS STRUCTS out		(swapchain)
+	clearValues[1].color = { 0.0f,0.0f,0.0f };//POSIBLE BUG SOURCE PQ NO INICALIZO LOS STRUCTS normal	(frameBuffer att)
+	clearValues[2].depthStencil = { 1.0f, 0 };//los pongo todos en 1.0f, el valor de profundidad mï¿½s lejano, el 0 es stencil
+	clearValues[3].color = { 0.7f,0.3f,0.7f };//POSIBLE BUG SOURCE PQ NO INICALIZO LOS STRUCTS albedo	(framebuffer att)
 
-	renderPassInfo.clearValueCount = 2;
-	renderPassInfo.pClearValues = clearValues;
+	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+	renderPassInfo.pClearValues = clearValues.data();
 
-	vkCmdBeginRenderPass(commandBuffers[currFrameDrawn], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);//3er argumento, los comandos de la render pass serán embedded en el buffer sin usar un buffer secundario
+	vkCmdBeginRenderPass(commandBuffers[currFrameDrawn], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);//3er argumento: los comandos de la render pass serï¿½n embedded en el buffer sin usar un buffer secundario
 
 	//bind pipeline
-	vkCmdBindPipeline(commandBuffers[currFrameDrawn], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->handle);
-	
+	vkCmdBindPipeline(commandBuffers[currFrameDrawn], VK_PIPELINE_BIND_POINT_GRAPHICS, renderPasses[0].subPasses[0].pipeline.handle);
+
 	//bind descriptor sets
-	vkCmdBindDescriptorSets(commandBuffers[currFrameDrawn], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->pipelineLayout, 0, 1, &descriptorSets[currFrameDrawn], 0, nullptr);//tengo que especificar si a la graphics o compute pipeline
+	vkCmdBindDescriptorSets(commandBuffers[currFrameDrawn], VK_PIPELINE_BIND_POINT_GRAPHICS, renderPasses[0].subPasses[0].pipeline.pipelineLayout, 0, 1, &renderPasses[0].subPasses[0].descriptorSets[currFrameDrawn], 0, nullptr);//tengo que especificar si a la graphics o compute pipeline
 
 	//set dynamic state
 	VkViewport viewport{};
@@ -577,12 +580,12 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 
 	//meto las push constants generales
 	float randomCoordinate = 0.0f;//((float)rand() / RAND_MAX);//static float randomCoordinate = 0.0f;//randomCoordinate += 0.01f;if (randomCoordinate >= 1.0f) { randomCoordinate = 0.0f; };
-	vkCmdPushConstants(commandBuffers[currFrameDrawn], graphicsPipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT	| VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(pushConstants), 4, &randomCoordinate);//TODO
-
-	//Dibujar
+	vkCmdPushConstants(commandBuffers[currFrameDrawn], renderPasses[0].subPasses[0].pipeline.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(pushConstants), 4, &randomCoordinate);//TODO
+	
+	//Dibujar: gBuffer subPass
 	for (const auto& currMaterialBufferPair : materialsBuffers) {
 		//conectar buffers
-		VkBuffer vertexBuffers[] = { currMaterialBufferPair.second->vertexHandle};
+		VkBuffer vertexBuffers[] = { currMaterialBufferPair.second->vertexHandle };
 		VkDeviceSize bufferOffsets[] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffers[currFrameDrawn], 0, 1, vertexBuffers, bufferOffsets);
 		vkCmdBindIndexBuffer(commandBuffers[currFrameDrawn], currMaterialBufferPair.second->indexHandle, 0, VK_INDEX_TYPE_UINT32);
@@ -590,13 +593,14 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 		for (const auto& currPrimitive : materialsPrimitives.at(currMaterialBufferPair.first)) {
 			//si esta marcada para dibujar
 			if (currPrimitive->toBeDrawn) {
+	
 				//meto sus push constants
 				pushConstants pc{};
 				pc.albedoIndex = currPrimitive->pbrIndices.albedoIndex;
 				pc.matrixIndex = currPrimitive->matrixIndex;
-				vkCmdPushConstants(commandBuffers[currFrameDrawn], graphicsPipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushConstants), &pc);
+				vkCmdPushConstants(commandBuffers[currFrameDrawn], renderPasses[0].subPasses[0].pipeline.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushConstants), &pc);
 
-				//dibujo la mesh//printf("\nindex count: %u, index offset:%u, vertexOffset:%u ", currPrimitive->indexCount, currPrimitive->indexOffset, currPrimitive->vertexOffset);
+				//dibujo la mesh
 				vkCmdDrawIndexed(commandBuffers[currFrameDrawn], currPrimitive->indexCount, 1, currPrimitive->indexOffset, currPrimitive->vertexOffset, 0);
 
 				//reset to be drawn variable
@@ -604,7 +608,22 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 			}
 		}
 	}
+	
+	//ligthing subpass
+	vkCmdNextSubpass(commandBuffers[currFrameDrawn], VK_SUBPASS_CONTENTS_INLINE);
 
+	//bind pipeline
+	vkCmdBindPipeline(commandBuffers[currFrameDrawn], VK_PIPELINE_BIND_POINT_GRAPHICS, renderPasses[0].subPasses[1].pipeline.handle);
+
+	//bind descriptorSets
+	vkCmdBindDescriptorSets(commandBuffers[currFrameDrawn], VK_PIPELINE_BIND_POINT_GRAPHICS, renderPasses[0].subPasses[1].pipeline.pipelineLayout, 0, 1, &renderPasses[0].subPasses[1].descriptorSets[currFrameDrawn], 0, nullptr);
+
+	//set dynamic state
+	vkCmdSetViewport(commandBuffers[currFrameDrawn], 0, 1, &viewport);
+	vkCmdSetScissor(commandBuffers[currFrameDrawn], 0, 1, &tijeras);
+
+	vkCmdDraw(commandBuffers[currFrameDrawn], 4, 1, 0, 0);
+	
 	//terminar la render Pass
 	vkCmdEndRenderPass(commandBuffers[currFrameDrawn]);
 
@@ -621,7 +640,7 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 	submitInfo.pCommandBuffers = &commandBuffers[currFrameDrawn];
 
 	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &gotframeBufferImageSemaforos[currFrameDrawn];//Esperamos al semáforo 1 en la stage 1 de ambos array, en el semáforo 2 en la stage 2 y así
+	submitInfo.pWaitSemaphores = &gotframeBufferImageSemaforos[currFrameDrawn];//Esperamos al semï¿½foro 1 en la stage 1 de ambos array, en el semï¿½foro 2 en la stage 2 y asï¿½
 	VkPipelineStageFlags stagesToWaitIn[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };//espera en esta stage especificamente
 	submitInfo.pWaitDstStageMask = stagesToWaitIn;
 
@@ -640,7 +659,7 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.swapchainCount = 1;
-	presentInfo.pResults = nullptr; //opcional, es un output para checar como le fué a cada swapChain individualmente
+	presentInfo.pResults = nullptr; //opcional, es un output para checar como le fuï¿½ a cada swapChain individualmente
 
 	resultRelatedToSwapChain = vkQueuePresentKHR(presentQueueHandle, &presentInfo);
 	if (resultRelatedToSwapChain == VK_ERROR_OUT_OF_DATE_KHR || resultRelatedToSwapChain == VK_SUBOPTIMAL_KHR || windowResized) {
@@ -658,7 +677,8 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 void asgTerminate() {
 	vkDeviceWaitIdle(logicalDevice);
 
-	destroyDescriptorSetResources();
+	defferedPassFunc::gBufferSubPass::destroyDescriptorSetResources();
+	defferedPassFunc::ligthingSubPass::destroyDescriptorSetResources();
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroyFence(logicalDevice, frameDrawnFences[i], nullptr);
@@ -668,14 +688,15 @@ void asgTerminate() {
 	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 	vkDestroyCommandPool(logicalDevice, transferCommandPool, nullptr);
 
-	destroyFrameBuffers();
+	for (auto& renderPass : renderPasses) {
+		renderPass.del();
+	}
+
 	swapChain->del();//frameBuffers se deben destruir antes de render pass e image views
 
 	for (const auto& pair : materialsBuffers) {
 		pair.second->del();
 	}
-
-	graphicsPipeline->del();
 
 	asgImageHandler::deleteResources();
 

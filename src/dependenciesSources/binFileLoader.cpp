@@ -1,4 +1,5 @@
 #include <binFileLoader.hpp>
+#include <windows.h>
 
 std::vector<unsigned char> readRawBinary(std::string path){
     //open file  (a)t (t)he (e)nd   in binary

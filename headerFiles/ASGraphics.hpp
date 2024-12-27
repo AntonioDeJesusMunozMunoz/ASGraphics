@@ -1,4 +1,5 @@
-//aquí van los include que voy a necesitar para usar la libreria
+#ifndef ASGRAPHICS_H_
+#define ASGRAPHICS_H_
 //dependencies
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -22,14 +23,16 @@ GLFWwindow* asgGetGlfwWindowHandle();
 
 //Structs
 class asgModelHandle {
-	private:
-		//DONT TOUCH ME
-		uint32_t modelIndex;
-	public:
-		asgModelHandle(uint32_t modelIndex);
-		const uint32_t getIndex();
+public:
+	asgModelHandle(uint32_t modelIndex);
+	//asgModelHandle(const asgModelHandle& modelToCopy);
 
-		glm::mat4 modelMatrix;
+	const uint32_t getIndex();
+
+	glm::mat4 modelMatrix;
+
+private:
+	uint32_t modelIndex;
 };
 
 //funciones
@@ -44,3 +47,5 @@ void asgTerminate();
 /*tests*/
 //void asgLoadData(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::string materialName);
 //void asgLoadDataWithAlbedo(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::string albedoPath, std::string materialName);
+
+#endif

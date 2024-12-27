@@ -19,6 +19,7 @@ layout(push_constant) uniform pushConstant{//no se pueden usar structs en unione
 
 //output
 layout(location = 0) out vec4 outFragColor;
+layout(location = 1) out vec4 outNormal;
 
 
 void main(){
@@ -47,8 +48,11 @@ void main(){
     //get lightPos
     vec3 lightPos = vec3(0.0,0.0,1.0);
 
+    //get normal
+    outNormal = modelMatrix * vec4(normal,1.0);
+
     //get light intensity
-    float lightIntensity = clamp(dot(lightPos, vec3(modelMatrix * vec4(normal,1.0))),0, 1);
+    float lightIntensity = clamp(dot(lightPos, vec3(outNormal)),0, 1);
 
     //calculate final color
     outFragColor = albedoColor * texture(lightingThresholds, vec2(lightIntensity, pc.randomValue)).r;

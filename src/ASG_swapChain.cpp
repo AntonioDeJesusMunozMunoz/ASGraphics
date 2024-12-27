@@ -78,7 +78,7 @@ asgSwapChain::asgSwapChain() {
 
 	if (supportDetails.capabilities.maxImageCount != 0 && swapChainImageCount > supportDetails.capabilities.maxImageCount) {
 		swapChainImageCount = supportDetails.capabilities.maxImageCount;
-	}//printf("\nmin image count:%zu \nmax image count:%zu\n", supportDetails.capabilities.minImageCount, supportDetails.capabilities.maxImageCount);
+	}
 
 	VkSwapchainCreateInfoKHR swapChainCreateInfo{};
 	swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -90,7 +90,7 @@ asgSwapChain::asgSwapChain() {
 	swapChainCreateInfo.presentMode = chosenPresentMode;
 	swapChainCreateInfo.imageArrayLayers = 1; // amount of layers an image has, always one unless developing stereoscopic 3d
 	swapChainCreateInfo.minImageCount = swapChainImageCount;
-	swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;//we are renndering directly to them so they are color attachment
+	swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;//we are renndering directly to them so they are color attachment
 	//the one you would use for drawing them somewhere else and postprocessing would be VK_IMAGE_USAGE_TRANSFER_DST_BIT
 
 	queueFamilyIndices selectedQueueFamilies = getSelectedQueueFamilies(physicalDevice);

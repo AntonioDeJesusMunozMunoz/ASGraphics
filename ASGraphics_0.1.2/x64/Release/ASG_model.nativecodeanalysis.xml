@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DEFECTS>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>847</LINE>
+      <COLUMN>4</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::byteOffset' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::{ctor}</FUNCTION>
+    <DECORATED>??0&lt;unnamed-type-indices&gt;@Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>847</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::byteOffset</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>847</LINE>
+      <COLUMN>4</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::componentType' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::{ctor}</FUNCTION>
+    <DECORATED>??0&lt;unnamed-type-indices&gt;@Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>847</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::componentType</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>847</LINE>
+      <COLUMN>4</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::bufferView' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::{ctor}</FUNCTION>
+    <DECORATED>??0&lt;unnamed-type-indices&gt;@Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>847</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::&lt;unnamed-type-indices&gt;::bufferView</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>855</LINE>
+      <COLUMN>4</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::&lt;unnamed-type-values&gt;::bufferView' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::&lt;unnamed-type-values&gt;::{ctor}</FUNCTION>
+    <DECORATED>??0&lt;unnamed-type-values&gt;@Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>855</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::&lt;unnamed-type-values&gt;::bufferView</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>855</LINE>
+      <COLUMN>4</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::&lt;unnamed-type-values&gt;::byteOffset' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::&lt;unnamed-type-values&gt;::{ctor}</FUNCTION>
+    <DECORATED>??0&lt;unnamed-type-values&gt;@Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>855</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::&lt;unnamed-type-values&gt;::byteOffset</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>860</LINE>
+      <COLUMN>2</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::count' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::{ctor}</FUNCTION>
+    <DECORATED>??0Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>860</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::count</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+  <DEFECT>
+    <SFA>
+      <FILEPATH>C:\Users\Antonio Muñoz\source\repos\ASGraphics_0_1_2\dependencies\Include\tinyGLTF\</FILEPATH>
+      <FILENAME>tiny_gltf.h</FILENAME>
+      <LINE>860</LINE>
+      <COLUMN>2</COLUMN>
+    </SFA>
+    <DEFECTCODE>26495</DEFECTCODE>
+    <DESCRIPTION>Variable 'tinygltf::Accessor::Sparse::isSparse' is uninitialized. Always initialize a member variable (type.6).</DESCRIPTION>
+    <FUNCTION>tinygltf::Accessor::Sparse::{ctor}</FUNCTION>
+    <DECORATED>??0Sparse@Accessor@tinygltf@@QEAA@XZ</DECORATED>
+    <FUNCLINE>860</FUNCLINE>
+    <ADDITIONALINFO>
+      <targetSymbol>tinygltf::Accessor::Sparse::isSparse</targetSymbol>
+    </ADDITIONALINFO>
+    <PATH></PATH>
+  </DEFECT>
+</DEFECTS>

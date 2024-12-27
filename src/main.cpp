@@ -66,11 +66,9 @@ void updateCamera(GLFWwindow* ventana, Camera* cam) {
 
 int main() {
 	asgInit();
-	asgModelHandle bunny = asgLoadModel(".\\resourceFiles\\models\\bunny\\scene.gltf");
 	asgModelHandle fish = asgLoadModel(".\\resourceFiles\\models\\BarramundiFish\\BarramundiFish.gltf");
 	asgModelHandle celular = asgLoadModel(".\\resourceFiles\\models\\celular\\celular.gltf");
 	
-	bunny.modelMatrix = glm::translate(glm::vec3(-0.1f, 0.0f, 0.0f));
 	fish.modelMatrix = glm::translate(glm::vec3(0.1f, 0.0f, 2.0f));
 	celular.modelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f,0.1f,0.1f));
 	
@@ -85,8 +83,8 @@ int main() {
 		asgPollGLFWEvents();
 		updateCamera(asgGetGlfwWindowHandle(), &primeraPersona);
 		glm::mat4 viewMatrix = glm::lookAt(primeraPersona.pos, primeraPersona.pos + primeraPersona.orientation, glm::vec3(0.0f, 1.0f, 0.0f));
-		asgDrawFrame(viewMatrix, std::vector<asgModelHandle>({celular, bunny, fish}));
-	}
+		asgDrawFrame(viewMatrix, std::vector<asgModelHandle>({celular, fish}));
+	} 
 
 	asgTerminate();
 	
