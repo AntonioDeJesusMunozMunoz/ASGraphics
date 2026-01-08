@@ -6,7 +6,7 @@ El proyecto es principalmente para uso personal.
 
 ## **Librerias**
 Se usan las siguientes librerias:
-- Vulkan
+- Vulkan (El sdk de https://vulkan.lunarg.com/)
 - GLFW (https://github.com/g-truc/glm)
 - GLM  (https://github.com/g-truc/glm)
 - STB  (https://github.com/nothings/stb)
@@ -21,8 +21,8 @@ ASGraphics está diseñada para una integración profunda con los proyectos que 
 
 Debido a esta integración profunda, el uso de la librería requiere una estructura de archivos específica. Esta estructura es la siguiente:
 
-- tener en dependencies/include/: GLM(carpeta), vulkan(carpeta), ASGraphics.hpp y ASG_vertex.hpp.
-- tener en dependencies/lib/:  glfw3.lib, vulkan-1.lib, ASGraphics.lib. (La libreria se puede generar usando Cmake) 
+- tener en dependencies/include/: GLM(carpeta de proyecto, usandolo como submodulo de git), vulkan(carpeta de vulkan dentro del sdk, la que tiene la carpeta vk_video y vulkan), ASGraphics.hpp y ASG_vertex.hpp.
+- tener en dependencies/lib/:  glfw3.lib, vulkan-1.lib (del sdk), ASGraphics.lib. (La libreria de ASGraphics se puede generar usando Cmake) 
 - tener en resourceFiles/nonModelImages/:  lightingThresholds.jpg
 - tener en resourceFiles/shaders/compiled:  gBufferPass.vert, gBufferPass.frag, lightingPass.vert, y lightingPass.frag
  
@@ -31,4 +31,11 @@ Debido a esta integración profunda, el uso de la librería requiere una estruct
 *El proyecto debe ser compilado con MSVC porque con ese se compiló la libreria
 
 ## **Explicaciones extra**
--Los archivos .bat son para compilar diferentes versiones de los shaders
+- Los archivos .bat son para compilar diferentes versiones de los shaders.
+- Este proyecto NO es para simple implementación con proyectos existentes.
+- Se publica con fines de revisión de código y referencia de arquitectura.
+
+- ## Note
+This project is not intended to be a plug-and-play engine.
+It is shared for code review and architectural reference purposes.
+
