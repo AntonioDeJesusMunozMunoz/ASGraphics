@@ -1,10 +1,22 @@
 #include <binFileLoader.hpp>
-#include <windows.h>
+#ifndef NDEBUG
+#include <iostream>
+#endif
 
 std::vector<unsigned char> readRawBinary(std::string path){
-    //open file  (a)t (t)he (e)nd   in binary
+
+#ifndef NDEBUG
+		std::cout << "reading raw binary file: " << path << std::endl;
+#endif
+
+    //open file  (a)t (t)he (e)nd   in binary           //std::cout << "trying to read file: " << path << std::endl;
     std::ifstream file(path, std::ios::ate | std::ios::binary);
     if (!file.is_open()){
+
+#ifndef NDEBUG
+		std::cout << "could not open file: " << path << std::endl;
+#endif
+
         throw std::runtime_error("could not open file");
     }
 
@@ -18,6 +30,10 @@ std::vector<unsigned char> readRawBinary(std::string path){
 
     //exit
     file.close();
+
+#ifndef NDEBUG
+    std::cout << "done reading" << std::endl;
+#endif
 
     return rawData;
 }

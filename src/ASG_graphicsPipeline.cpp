@@ -9,6 +9,11 @@
 
 //definiciones
 VkShaderModule asgPipelineFunc::createShaderModule(std::vector<unsigned char> rawDataVector) {
+
+	if (validationLayersEnabled) {
+		printf("creating a shader module\n");
+	}
+
 	VkShaderModuleCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.pCode = reinterpret_cast<const uint32_t*>(rawDataVector.data());
@@ -126,7 +131,7 @@ VkPipelineColorBlendStateCreateInfo asgPipelineFunc::fillColorBlendCI(std::vecto
 	blendStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	blendStateCI.pAttachments = blendAttachments->data();
 	blendStateCI.attachmentCount = static_cast<uint32_t>(blendAttachments->size());
-	blendStateCI.logicOpEnable = enableLogicOp;//tambien podrías blendear con bitwise ops, pero poner esto true hace el attachment false
+	blendStateCI.logicOpEnable = enableLogicOp;//tambien podrï¿½as blendear con bitwise ops, pero poner esto true hace el attachment false
 	blendStateCI.logicOp = op;
 	blendStateCI.blendConstants[0] = fourBlendConstants[0];
 	blendStateCI.blendConstants[1] = fourBlendConstants[1];

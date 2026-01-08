@@ -37,6 +37,10 @@ struct asgPrimitive {//deberia de hacer esto una clase y poner pbrIndices, index
 	std::string materialName;
 
 	asgPrimitive(tinygltf::Model& tgModel, tinygltf::Primitive& tgPrimitive);
+
+#ifndef NDEBUG
+	asgPrimitive() = default;
+#endif
 };
 
 struct asgMesh {

@@ -74,7 +74,7 @@ std::vector<std::vector<std::any>>getNumbers(Model& tgModel ,Accessor accesor){
 			}
 		}
 		
-		//añado el grupo y lo vacio para el siguiente ciclo
+		//aï¿½ado el grupo y lo vacio para el siguiente ciclo
 		returnVector.push_back(singleComponent);
 		singleComponent.clear();
 	}
@@ -157,12 +157,29 @@ std::vector<uint32_t> asgModelFunc::getPrimitiveIndices(tinygltf::Model& tgModel
 asgPbrIndices asgModelFunc::loadMaterialImages(tinygltf::Model& tgModel, tinygltf::Material material)
 {	
 	//get the image data
-	Image albedo = tgModel.images[tgModel.textures[material.pbrMetallicRoughness.baseColorTexture.index].source];
+	printf("\nHAAAAAAAAAAAAAAAAAAA");
+
+	if (validationLayersEnabled) {
+		std::cout << "\ntgModel images size: " << tgModel.images.size() << std::endl;
+		std::cout << "\ntgModel textures size: " << tgModel.textures.size() << std::endl;
+		std::cout << "\nbase color texture index = " << material.pbrMetallicRoughness.baseColorTexture.index << std::endl;
+
+	}
+
+	if (material.pbrMetallicRoughness.baseColorTexture.index == -1) {
+		throw std::runtime_error("material has no base color texture");
+	}
 	
+	Image albedo = tgModel.images[tgModel.textures[material.pbrMetallicRoughness.baseColorTexture.index].source];
+	printf("\nHBBBBBBBBBBBBBBBBBBBBb");
+
 	//put it into imageHandler and get indices
 	asgPbrIndices pbrIndices;
 
+	printf("\nHCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
 	pbrIndices.albedoIndex = asgImageHandler::loadAlbedoMap(albedo.image, albedo.height, albedo.width, albedo.component);
+	printf("\nHDDDDDDDDDDDDDDDDDDDDDDD");
+
 	if (validationLayersEnabled) {
 		printf("\ncomponent: %i, bit depth: %i", albedo.component, albedo.bits);//bits es bit depth
 	}
@@ -211,27 +228,36 @@ glm::mat4 asgModelFunc::getMeshTransforms(tinygltf::Model& tgModel, tinygltf::No
 asgPrimitive::asgPrimitive(tinygltf::Model& tgModel, tinygltf::Primitive& tgPrimitive)
 {
 	//get material
+
+	printf("\n[loading primitive material]");
 	tinygltf::Material tgMaterial = tgModel.materials[0];//default
 	if (tgPrimitive.material != -1) {
 		tgMaterial = tgModel.materials[tgPrimitive.material];
 	}
 
+	printf("\n[done loading primitive material]");
+	
 	//make material stuff if there isnt any
+	printf("\nmaking materials buffers and materials primitives");
 	if (materialsBuffers.find(tgMaterial.name) == materialsBuffers.end()) {//si no esta
-		materialsBuffers.insert(std::make_pair(tgMaterial.name, std::make_unique<asgVIBuffer>(1000, 1000)));
+		materialsBuffers.insert(std::make_pair(tgMaterial.name, std::make_unique<asgDeviceLocalVIB>(1000, 1000)));
 		materialsPrimitives.insert(std::make_pair(tgMaterial.name, std::vector<asgPrimitive*>(0)));
 	}
 
 	//make variables
+	printf("\n[loading primitive vertices and indices]");
 	std::vector<Vertex> vertices = asgModelFunc::getPrimitiveVertices(tgModel, tgPrimitive);
 	std::vector<uint32_t> indices = asgModelFunc::getPrimitiveIndices(tgModel, tgPrimitive);
- 
+	printf("\n[done loading primitive vertices and indices]");
+
 	//initialize atributes
 	this->currTransform = glm::mat4(1.0f);
 
+	printf("\nbefore reading from the materials buffers");
 	this->indexCount = static_cast<uint32_t>(indices.size());
 	this->indexOffset = materialsBuffers[tgMaterial.name]->indicesInside;
 	this->vertexOffset = materialsBuffers[tgMaterial.name]->verticesInside;
+	printf("\nafter reading from the materials buffers");
 
 	this->matrixIndex = 0;
 	this->pbrIndices = asgModelFunc::loadMaterialImages(tgModel, tgMaterial);
@@ -242,6 +268,7 @@ asgPrimitive::asgPrimitive(tinygltf::Model& tgModel, tinygltf::Primitive& tgPrim
 	//put my data into the buffer
 	materialsBuffers[tgMaterial.name]->append(vertices, indices);
 
+	printf("\n[done with the whole function]");
 }
 
 asgMesh::asgMesh(tinygltf::Model& tgModel, tinygltf::Mesh tgMesh)
@@ -249,7 +276,14 @@ asgMesh::asgMesh(tinygltf::Model& tgModel, tinygltf::Mesh tgMesh)
 	//fill primitives
 	for (auto& tgPrimitive : tgMesh.primitives) {
 		//make primitive
+		if (validationLayersEnabled) {
+			printf("\n[loading primitive]");
+		}
 		asgPrimitive currPrimitive(tgModel, tgPrimitive);
+		if (validationLayersEnabled) {
+			printf("\n[done loading primitive]");
+		}
+
 		//append
 		this->primitives.push_back(currPrimitive);
 	}
@@ -312,7 +346,14 @@ asgModel::asgModel(std::string path, tinygltf::Model& tgModel)
 	//for mesh in tgModel
 	for (auto& tgMesh : tgModel.meshes) {
 		//make mesh
+		if (validationLayersEnabled) {
+			printf("\n[loading mesh]");
+		}
 		asgMesh currMesh(tgModel, tgMesh);
+		if (validationLayersEnabled) {
+			printf("\n[done mesh]");
+		}
+
 		//append to my meshes
 		this->meshes.push_back(currMesh);
 	}

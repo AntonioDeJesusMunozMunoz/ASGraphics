@@ -65,6 +65,7 @@ void updateCamera(GLFWwindow* ventana, Camera* cam) {
 }
 
 int main() {
+	printf("main from ASGraphics is running\n");
 	asgInit();
 	asgModelHandle fish = asgLoadModel(".\\resourceFiles\\models\\BarramundiFish\\BarramundiFish.gltf");
 	asgModelHandle celular = asgLoadModel(".\\resourceFiles\\models\\celular\\celular.gltf");

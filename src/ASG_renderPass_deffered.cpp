@@ -6,6 +6,9 @@
 //local
 #include <binFileLoader.hpp>
 #include <ASG_vertex.hpp>
+#include <ASG_config.hpp>
+
+#define ASG_MAX_MESH_MODEL_MATRICES 3000
 
 namespace defferedPassFunc {
 	//framebuffer stuff
@@ -83,7 +86,7 @@ namespace defferedPassFunc {
 		normalImageViewCI.format = VK_FORMAT_R8G8B8A8_SRGB;
 		normalImageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
 
-		//estos te permiten mucha customización de los color channels
+		//estos te permiten mucha customizaciï¿½n de los color channels
 		normalImageViewCI.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 		normalImageViewCI.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
 		normalImageViewCI.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -107,7 +110,7 @@ namespace defferedPassFunc {
 		albedoImageViewCI.format = VK_FORMAT_B8G8R8A8_SRGB;//PARA EL ALBEDO DEBE SER B8G8R8A8 porque es mas comun que R8G8B8A8 en swapchains
 		albedoImageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
 
-		//estos te permiten mucha customización de los color channels
+		//estos te permiten mucha customizaciï¿½n de los color channels
 		albedoImageViewCI.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 		albedoImageViewCI.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
 		albedoImageViewCI.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -149,8 +152,6 @@ namespace defferedPassFunc {
 			currCI.height = sc.swapExtent.height;
 			currCI.layers = 1;
 
-			printf("\nrecreating framebuffers for defered pass\n");
-
 			if (vkCreateFramebuffer(logicalDevice, &currCI, nullptr, &(renderPass->framebuffers[i])) != VK_SUCCESS) {
 				throw std::runtime_error("could not create frame buffer");
 			}
@@ -171,7 +172,7 @@ namespace defferedPassFunc {
 		VkDeviceMemory meshModelMatricesMemory;
 		std::vector<void*> mappedMeshModelMatricesBuffers(MAX_FRAMES_IN_FLIGHT);
 
-		uint32_t amountOfLoadedAlbedos = 0;//hiba a pensar en como lidiar con unloading de imageViews, pero nada del código lidia con eso así q ps así lo dejo y cuando lidie con unloading lo hago todo junto 
+		uint32_t amountOfLoadedAlbedos = 0;//hiba a pensar en como lidiar con unloading de imageViews, pero nada del cï¿½digo lidia con eso asï¿½ q ps asï¿½ lo dejo y cuando lidie con unloading lo hago todo junto 
 
 		//constant uniforms
 		VkDeviceMemory constantUniformsMemory;
@@ -183,16 +184,16 @@ namespace defferedPassFunc {
 
 		//helpers
 		VkBuffer createMeshModelBuffer() {
-			//llenar el struct (todos tienen la misma información)
+			//llenar el struct (todos tienen la misma informaciï¿½n)
 			VkBufferCreateInfo returnBufferCI{};
 			returnBufferCI.pQueueFamilyIndices = nullptr;
 			returnBufferCI.queueFamilyIndexCount = 1;
 			returnBufferCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			returnBufferCI.size = 50 * 64;//TODO 50 arbitrario, 64 es el tamaño de una mat4
+			returnBufferCI.size = ASG_MAX_MESH_MODEL_MATRICES * 64;//TODO 3000 arbitrario, 64 es el tamaï¿½o de una mat4
 			returnBufferCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 			returnBufferCI.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-			//mandarlo a la función (lo mismo)
+			//mandarlo a la funciï¿½n (lo mismo)
 			VkBuffer returnBuffer;
 			if (vkCreateBuffer(logicalDevice, &returnBufferCI, nullptr, &returnBuffer) != VK_SUCCESS) {
 				throw std::runtime_error("could not createBuffer");
@@ -202,6 +203,11 @@ namespace defferedPassFunc {
 
 		//func
 		void createPipeline(asgRenderSubPass* gBufferSubPass, VkRenderPass renderPass, uint32_t subPassIndex) {
+
+			if (validationLayersEnabled) {
+				std::cout << "creating gBuffer subpass pipeline" << std::endl;
+			}
+
 			//create layout bindings
 			VkDescriptorSetLayoutBinding viewProjBufferLB = asgPipelineFunc::createLayoutBinding(0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				VK_SHADER_STAGE_VERTEX_BIT);
@@ -212,13 +218,30 @@ namespace defferedPassFunc {
 			VkDescriptorSetLayoutBinding lightingThresholdsLB = asgPipelineFunc::createLayoutBinding(3, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				VK_SHADER_STAGE_FRAGMENT_BIT);
 
+			if (validationLayersEnabled) {
+				std::cout << "after creating the LB" << std::endl;
+			}
+
 			//create descriptorSetLayout for this pipeline
 			std::vector<VkDescriptorSetLayoutBinding> layoutBindings = { viewProjBufferLB, albedoSamplersLB, meshModelMatricesLB, lightingThresholdsLB };
 			gBufferSubPass->pipeline.descriptorSetLayout = asgPipelineFunc::createDescriptorSetLayout(layoutBindings);
 
+			if (validationLayersEnabled) {
+				std::cout << "after creating the descriptorSet layout" << std::endl;
+			}
+
 			//create shader modules
-			VkShaderModule vertexShaderModule = asgPipelineFunc::createShaderModule(readRawBinary("./resourceFiles/shaderPrograms/compiled/gBufferPass.vert.spv"));
-			VkShaderModule fragmentShaderModule = asgPipelineFunc::createShaderModule(readRawBinary("./resourceFiles/shaderPrograms/compiled/gBufferPass.frag.spv"));
+			VkShaderModule vertexShaderModule = asgPipelineFunc::createShaderModule(readRawBinary(resourceFilesPath + "shaderPrograms/compiled/gBufferPass.vert.spv"));
+
+			if (validationLayersEnabled) {
+				std::cout << "after creating the vertex shader module" << std::endl;
+			}
+
+			VkShaderModule fragmentShaderModule = asgPipelineFunc::createShaderModule(readRawBinary(resourceFilesPath + "shaderPrograms/compiled/gBufferPass.frag.spv"));
+
+			if (validationLayersEnabled) {
+				std::cout << "after creating the shader modules" << std::endl;
+			}
 
 			//fill shader stages cis
 			VkPipelineShaderStageCreateInfo vertexShaderStageCI = asgPipelineFunc::fillShaderStageCI(VK_SHADER_STAGE_VERTEX_BIT, "main", vertexShaderModule);
@@ -278,7 +301,7 @@ namespace defferedPassFunc {
 			VkPipelineMultisampleStateCreateInfo multisampleCreateInfo = asgPipelineFunc::fillNoMultisampleCI();
 
 			//Color blending, necesite global y perframebuffer (que significa esto?)
-			VkPipelineColorBlendAttachmentState blendAttachmentState{};//para añadir transparencia, solo adivinas los enums basado en como quieres que los combine
+			VkPipelineColorBlendAttachmentState blendAttachmentState{};//para aï¿½adir transparencia, solo adivinas los enums basado en como quieres que los combine
 			blendAttachmentState.blendEnable = VK_FALSE;
 			blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
 				VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -312,10 +335,14 @@ namespace defferedPassFunc {
 				throw std::runtime_error("could not create pipeline layout");
 			}
 
+			if (validationLayersEnabled) {
+				std::cout << "after creating the pipeline layout" << std::endl;
+			}
+
 			//ya crear la pipeline
 			VkGraphicsPipelineCreateInfo graphicsPipelineCI{};
 			graphicsPipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-			graphicsPipelineCI.basePipelineHandle = VK_NULL_HANDLE;//opcional, es para crear subpipelines que es más rapido que varias pipelines
+			graphicsPipelineCI.basePipelineHandle = VK_NULL_HANDLE;//opcional, es para crear subpipelines que es mï¿½s rapido que varias pipelines
 			graphicsPipelineCI.basePipelineIndex = -1;//opcional, tiene que ver con parametro anterior
 			graphicsPipelineCI.layout = gBufferSubPass->pipeline.pipelineLayout;
 			graphicsPipelineCI.renderPass = renderPass;
@@ -333,6 +360,10 @@ namespace defferedPassFunc {
 
 			if (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &graphicsPipelineCI, nullptr, &gBufferSubPass->pipeline.handle) != VK_SUCCESS) {
 				throw std::runtime_error("could not create graphics pipeline");
+			}
+
+			if (validationLayersEnabled) {
+				std::cout << "after creating the pipeline" << std::endl;
 			}
 
 			//Destroy shader modules as soon as the code is in te pipeline just like openGL
@@ -378,7 +409,7 @@ namespace defferedPassFunc {
 			/*lightingh thresholds*/
 			//load image with stb as single color channel
 			int lightingThresholdsTall, lightingThresholdsLong, lightingThresholdsNumCollChannels;
-			stbi_uc* lightingThresholdsData = stbi_load("./resourceFiles/nonModelImages/lighting_thresholds.png", &lightingThresholdsLong, &lightingThresholdsTall, &lightingThresholdsNumCollChannels, STBI_grey);
+			stbi_uc* lightingThresholdsData = stbi_load((resourceFilesPath + std::string("nonModelImages/lighting_thresholds.png")).c_str(), &lightingThresholdsLong, &lightingThresholdsTall, &lightingThresholdsNumCollChannels, STBI_grey);
 			if (lightingThresholdsData == nullptr) {
 				std::cerr << stbi_failure_reason() << std::endl;
 				throw std::runtime_error("could not load image");
@@ -430,7 +461,7 @@ namespace defferedPassFunc {
 
 			VkCommandBuffer cmdBuffer = createSingleUseCmdBuffer();
 			VkBufferImageCopy region{};
-			region.bufferImageHeight = 0;//podría ser que en el bufer existieran padding bytes entre los renglones, pero no padding, así que 0 en este y rowLength
+			region.bufferImageHeight = 0;//podrï¿½a ser que en el bufer existieran padding bytes entre los renglones, pero no padding, asï¿½ que 0 en este y rowLength
 			region.bufferOffset = 0;
 			region.bufferRowLength = 0;
 
@@ -536,7 +567,7 @@ namespace defferedPassFunc {
 				throw std::runtime_error("could not allocate descriptor sets");
 			}
 
-			//le metemos los datos estáticos
+			//le metemos los datos estï¿½ticos
 			for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 
 				std::vector<VkWriteDescriptorSet> currWriteDescriptorSets(0);
@@ -564,7 +595,7 @@ namespace defferedPassFunc {
 				VkDescriptorBufferInfo currMeshModelMatricesBI{};
 				currMeshModelMatricesBI.buffer = meshModelMatricesBuffers[i];//el buffer del frame i
 				currMeshModelMatricesBI.offset = 0;
-				currMeshModelMatricesBI.range = 50 * 64;//64 es el tamaño de una mat4, 50 es arbitrario
+				currMeshModelMatricesBI.range = ASG_MAX_MESH_MODEL_MATRICES * 64;//64 es el tamaï¿½o de una mat4, 50 es arbitrario
 
 				VkWriteDescriptorSet meshModelMatricesWrite{};
 				meshModelMatricesWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -642,9 +673,9 @@ namespace defferedPassFunc {
 			ligthingSubPass->pipeline.descriptorSetLayout = asgPipelineFunc::createDescriptorSetLayout(layoutBindings);
 
 			//create shader modules
-			VkShaderModule vertexShaderModule = asgPipelineFunc::createShaderModule(readRawBinary("./resourceFiles/shaderPrograms/compiled/lightingPass.vert.spv"));
-			VkShaderModule fragmentShaderModule = asgPipelineFunc::createShaderModule(readRawBinary("./resourceFiles/shaderPrograms/compiled/lightingPass.frag.spv"));
-
+			VkShaderModule vertexShaderModule = asgPipelineFunc::createShaderModule(readRawBinary(resourceFilesPath + "shaderPrograms/compiled/lightingPass.vert.spv"));
+			VkShaderModule fragmentShaderModule = asgPipelineFunc::createShaderModule(readRawBinary(resourceFilesPath + "shaderPrograms/compiled/lightingPass.frag.spv"));
+			
 			//fill shader stages cis
 			VkPipelineShaderStageCreateInfo vertexShaderStageCI = asgPipelineFunc::fillShaderStageCI(VK_SHADER_STAGE_VERTEX_BIT, "main", vertexShaderModule);
 			VkPipelineShaderStageCreateInfo fragmentShaderStageCI = asgPipelineFunc::fillShaderStageCI(VK_SHADER_STAGE_FRAGMENT_BIT, "main", fragmentShaderModule);
@@ -694,7 +725,7 @@ namespace defferedPassFunc {
 			VkPipelineMultisampleStateCreateInfo multisampleCreateInfo = asgPipelineFunc::fillNoMultisampleCI();
 
 			//Color blending, necesite global y perframebuffer (que significa esto?)
-			VkPipelineColorBlendAttachmentState blendAttachmentState{};//para añadir transparencia, solo adivinas los enums basado en como quieres que los combine
+			VkPipelineColorBlendAttachmentState blendAttachmentState{};//para aï¿½adir transparencia, solo adivinas los enums basado en como quieres que los combine
 			blendAttachmentState.blendEnable = VK_FALSE;
 			blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
 				VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -831,6 +862,11 @@ namespace defferedPassFunc {
 }
 
 asgRenderPass createDefferedRenderingPass(asgSwapChain& sc) {
+
+	if (validationLayersEnabled) {
+		printf("startin to create deffered render pass\n");
+	}
+
 	//fill the attachment descriptions
 	VkAttachmentDescription albedoAtt{};
 	albedoAtt.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -914,14 +950,14 @@ asgRenderPass createDefferedRenderingPass(asgSwapChain& sc) {
 	asgRenderSubPass ligthingSubPass;
 	ligthingSubPass.fillSubPassDescription(&ligthingAttachmentReferences, &ligthingPassDepthRef, &ligthingInputAttachmentReferences);
 
-	//creamos subpass dependencies/*describe dependencias (especifica memory y execution dependencies entre subpasses) para q el driver se encargue de eso (es optimo) //tenemos 3 subpasses??, la que creamos, la operación antes y la operación después, vulkan tiene built-in dependencies que lidian con ellas pero hay que sincronizar la de la operación después??*/
+	//creamos subpass dependencies/*describe dependencias (especifica memory y execution dependencies entre subpasses) para q el driver se encargue de eso (es optimo) //tenemos 3 subpasses??, la que creamos, la operaciï¿½n antes y la operaciï¿½n despuï¿½s, vulkan tiene built-in dependencies que lidian con ellas pero hay que sincronizar la de la operaciï¿½n despuï¿½s??*/
 	VkSubpassDependency beginToFirstSubPass{};
-	beginToFirstSubPass.srcSubpass = VK_SUBPASS_EXTERNAL; // de quien dependo (indice) VK_SUBPASS_EXTERNAL se refiere a la operación antes o después
+	beginToFirstSubPass.srcSubpass = VK_SUBPASS_EXTERNAL; // de quien dependo (indice) VK_SUBPASS_EXTERNAL se refiere a la operaciï¿½n antes o despuï¿½s
 	beginToFirstSubPass.dstSubpass = 0;//quien soy yo (indice)
-	beginToFirstSubPass.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;//esperaremos a esta operación????
+	beginToFirstSubPass.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;//esperaremos a esta operaciï¿½n????
 	beginToFirstSubPass.srcAccessMask = 0;
-	beginToFirstSubPass.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;//esta operación será la que espere???
-	beginToFirstSubPass.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;//específicamente esperaremos hasta que acabe y luego escribiremos???
+	beginToFirstSubPass.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;//esta operaciï¿½n serï¿½ la que espere???
+	beginToFirstSubPass.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;//especï¿½ficamente esperaremos hasta que acabe y luego escribiremos???
 	
 	VkSubpassDependency firstToSecondSubPass{};
 	firstToSecondSubPass.srcSubpass = 0;  // First subpass index
@@ -946,9 +982,17 @@ asgRenderPass createDefferedRenderingPass(asgSwapChain& sc) {
 	renderPassCI.subpassCount = static_cast<uint32_t>(subpassDescriptions.size());
 	renderPassCI.dependencyCount = static_cast<uint32_t>(dependencies.size());
 
+	if (validationLayersEnabled) {
+		printf("before creating the vk object\n");
+	}
+
 	VkRenderPass handle;
 	if (vkCreateRenderPass(logicalDevice, &renderPassCI, nullptr, &handle) != VK_SUCCESS) {
 		throw std::runtime_error("could not create deffered render pass");
+	}
+
+	if (validationLayersEnabled) {
+		printf("after creating the vk object\n");
 	}
 
 	//creamos asgRenderPass
@@ -956,23 +1000,71 @@ asgRenderPass createDefferedRenderingPass(asgSwapChain& sc) {
 	defferedPass.handle = handle;
 
 	//creamos framebuffer attachments
+
+	if (validationLayersEnabled) {	
+		printf("before creating the framebuffer attachments\n"); 
+	}
+
 	defferedPassFunc::createFrameBufferAttachments(&defferedPass, sc);
 
+	if (validationLayersEnabled) {
+		printf("after creating the framebuffer attachments\n");
+	}
+
 	//creamos framebuffers
+
+	if (validationLayersEnabled) {
+		printf("before creating the framebuffers\n");
+	}
+
 	defferedPass._createFrameBuffersFunc = defferedPassFunc::createFrameBuffers;
 	defferedPass.createFrameBuffers(sc);
 
+
+	if (validationLayersEnabled) {
+		printf("after creating the framebuffers\n");
+	}
+
 	//creamos graphicsPipelines//TODO, make all of these pipelines blood related so they switch bindings faster
+
+	if (validationLayersEnabled) {
+		printf("before creating the pipelines\n");
+	}
+
 	defferedPassFunc::gBufferSubPass::createPipeline(&gBufferSubPass, defferedPass.handle, 0);
+
+	if (validationLayersEnabled) {
+		printf("after creating the gBuffer pipeline\n");
+	}
+
 	defferedPassFunc::ligthingSubPass::createPipeline(&ligthingSubPass, defferedPass.handle, 1);
 
+
+	if (validationLayersEnabled) {
+		printf("after creating the pipelines\n");
+	}
+
 	//initializamos los descriptorSets
+
+	if (validationLayersEnabled) {
+		printf("before initializing the descriptor sets\n");
+	}
+
 	defferedPassFunc::gBufferSubPass::initializeDescriptorSets(&gBufferSubPass);
 	defferedPassFunc::ligthingSubPass::initializeDescriptorSets(defferedPass, sc,&ligthingSubPass);
+
+
+	if (validationLayersEnabled) {
+		printf("after initializing the descriptor sets\n");
+	}
 
 	//metemos las subpasses a el vector
 	defferedPass.subPasses.push_back(gBufferSubPass);
 	defferedPass.subPasses.push_back(ligthingSubPass);
+
+	if (validationLayersEnabled) {
+		printf("done creating render pases\n");
+	}
 
 	return defferedPass;
 }

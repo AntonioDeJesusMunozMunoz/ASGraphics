@@ -41,8 +41,18 @@ bool asgWindowShouldClose();//literaly just glfwWindowShouldClose
 void asgPollGLFWEvents();//literally just glfwPollEvents, polls the events so the OS doesnt think the aplication crashed
 
 asgModelHandle asgLoadModel(std::string pathToModel);
+
+#ifdef ASG_TINYGLTF_INTEGRATION
+#include <tiny_gltf.h>
+asgModelHandle asgLoadModel(std::string pathToModel, tinygltf::Model *returnModel);
+#endif
 void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw);
 void asgTerminate();
+
+
+#ifndef NDEBUG
+void asgDebugDrawTriangle(std::vector<glm::vec3> positions, glm::vec3 color);
+#endif
 
 /*tests*/
 //void asgLoadData(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::string materialName);

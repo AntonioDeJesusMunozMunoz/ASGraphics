@@ -1,19 +1,9 @@
-#include <ASG_VertexIndexBuffer.hpp>
+#include <ASG_PerpetualVertexIndexBuffer.hpp>
 
-#include <algorithm>//for min
-
-void asgVIBuffer::logicalClear() {
-	this->indicesInside = 0;
-	this->indexBytesUsed = 0;
-	this->indexByteOffset = 0;
-
-	this->vertexByteOffset = 0;
-	this->vertexBytesUsed = 0;
-	this->verticesInside = 0;
-}
-
-
-asgDeviceLocalVIB::asgDeviceLocalVIB(VkDeviceSize vertexBufferSize, VkDeviceSize indexBufferSize) {
+asgPerpetualVIB::asgPerpetualVIB(uint32_t vertexBufferSize, uint32_t indexBufferSize){
+	if (validationLayersEnabled) {
+		printf("\n[creating perpetual vertex index buffer]");
+	}
 	//creo vertexBuffer
 	VkBufferCreateInfo VertexBufferCI{};
 
@@ -24,7 +14,7 @@ asgDeviceLocalVIB::asgDeviceLocalVIB(VkDeviceSize vertexBufferSize, VkDeviceSize
 	VertexBufferCI.queueFamilyIndexCount = 2;
 	VertexBufferCI.sharingMode = VK_SHARING_MODE_CONCURRENT;
 	VertexBufferCI.size = vertexBufferSize;
-	VertexBufferCI.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	VertexBufferCI.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
 
 	if (vkCreateBuffer(logicalDevice, &VertexBufferCI, nullptr, &this->vertexHandle) != VK_SUCCESS) {
@@ -42,7 +32,7 @@ asgDeviceLocalVIB::asgDeviceLocalVIB(VkDeviceSize vertexBufferSize, VkDeviceSize
 	indexBufferCI.queueFamilyIndexCount = 2;
 	indexBufferCI.sharingMode = VK_SHARING_MODE_CONCURRENT;
 	indexBufferCI.size = indexBufferSize;
-	indexBufferCI.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	indexBufferCI.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
 	if (vkCreateBuffer(logicalDevice, &indexBufferCI, nullptr, &this->indexHandle) != VK_SUCCESS) {
 		throw std::runtime_error("could not create new index buffer");
@@ -56,7 +46,7 @@ asgDeviceLocalVIB::asgDeviceLocalVIB(VkDeviceSize vertexBufferSize, VkDeviceSize
 	VkMemoryAllocateInfo deviceMemoryAI{};
 
 	deviceMemoryAI.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	deviceMemoryAI.memoryTypeIndex = findRigthMemoryType(vertexMemRequirements.memoryTypeBits & indexMemRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);//busco una memoria que sea buena para vertexBuffer y(&) 
+	deviceMemoryAI.memoryTypeIndex = findRigthMemoryType(vertexMemRequirements.memoryTypeBits & indexMemRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);//busco una memoria que sea buena para vertexBuffer y(&) 
 	deviceMemoryAI.allocationSize = vertexMemRequirements.size + indexMemRequirements.size;
 
 	if (vkAllocateMemory(logicalDevice, &deviceMemoryAI, nullptr, &this->memory) != VK_SUCCESS) {
@@ -71,24 +61,21 @@ asgDeviceLocalVIB::asgDeviceLocalVIB(VkDeviceSize vertexBufferSize, VkDeviceSize
 	this->vertexByteSize = vertexBufferSize;
 	this->vertexBytesUsed = 0;
 	this->verticesInside = 0;
+
 	this->indexByteOffset = static_cast<unsigned int>(indexMemRequirements.alignment * ceil(vertexMemRequirements.size / indexMemRequirements.alignment));
 	this->indexByteSize = indexBufferSize;
 	this->indexBytesUsed = 0;
 	this->indicesInside = 0;
+
+	//mapeo los buffers
+	vkMapMemory(logicalDevice, this->memory, 0, vertexMemRequirements.size + indexMemRequirements.size, 0, &this->mappedVertexBufferStart);
+	this->mappedIndexBufferStart = static_cast<void*>(static_cast<unsigned char*>(this->mappedVertexBufferStart) + this->indexByteOffset);
 }
 
-void asgDeviceLocalVIB::append(std::vector<Vertex> vertexData, std::vector<uint32_t> indexData) {
-	//checar si cabe vertex
-	//checar si cabe index
-		 //si no
-			//resize
-	//meter vertex e index
-		//creo staging buffer
-		//meto new vertex data
-		//copio staging -> vertex en su offset
-		//meto new index data
-		// copio staging -> index en su offset
-
+void asgPerpetualVIB::append(std::vector<Vertex> vertexData, std::vector<uint32_t> indexData){
+	if (validationLayersEnabled) {
+		printf("\n[appending to perpetual vertex index buffer]");
+	}
 	uint32_t appendedVertexDataSize = static_cast<uint32_t>(vertexData.size() * sizeof(vertexData[0]));
 	uint32_t appendedIndexDataSize = static_cast<uint32_t>(indexData.size() * sizeof(indexData[0]));
 
@@ -98,61 +85,47 @@ void asgDeviceLocalVIB::append(std::vector<Vertex> vertexData, std::vector<uint3
 	uint32_t allVertexDataSize = this->vertexBytesUsed + appendedVertexDataSize;
 	uint32_t allIndexDataSize = this->indexBytesUsed + appendedIndexDataSize;
 
+	if (validationLayersEnabled) {
+		printf("\n[right before resize]");
+	}
+
 	if (!(vertexFits && indexFits)) {
 		this->resize(allVertexDataSize, allIndexDataSize);
 	}
 
-	//staging
-	VkBuffer stagingBuffer;
-	VkDeviceMemory stagingBufferMemory;//we assume that a staging buffer of the size of the vertexData is enough to hold the index data too
-	void* mappedStagingData;
+	if (validationLayersEnabled) {
+		printf("\n[after resize]");
+	}
 
-	createMemoryIndependentBuffer(appendedVertexDataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer, &stagingBufferMemory);
-	vkMapMemory(logicalDevice, stagingBufferMemory, 0, appendedVertexDataSize, 0, &mappedStagingData);//tambiï¿½n podrï¿½a poner VK_WHOLE_SIZE para mapear toda la memoria
+	//appending
+	memcpy(static_cast<void*>(static_cast<unsigned char*>(this->mappedVertexBufferStart) + this->vertexBytesUsed), vertexData.data(), appendedVertexDataSize);
+	memcpy(static_cast<void*>(static_cast<unsigned char*>(this->mappedIndexBufferStart) + this->indexBytesUsed), indexData.data(), appendedIndexDataSize);
 
-	memcpy(mappedStagingData, vertexData.data(), appendedVertexDataSize);//mover los datos al gpu ocurre en el fondo, vulkan solo dice que estï¿½ garantizado que ya haya ocurrido para la siguiente llamada a vkQueueSubmit, lo cual es good enough para este uso
-	copyBuffer(stagingBuffer, 0, this->vertexHandle, this->vertexBytesUsed, appendedVertexDataSize);//copy buffer already waits idle
+	if (validationLayersEnabled) {
+		printf("\n[after memcpy]");
+	}
 
-	memcpy(mappedStagingData, indexData.data(), appendedIndexDataSize);
-	copyBuffer(stagingBuffer, 0, this->indexHandle, this->indexBytesUsed, appendedIndexDataSize);
-
-	//cleanup
-	vkUnmapMemory(logicalDevice, stagingBufferMemory);
-	vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
-	vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
-
+	//udate internal vars
 	this->vertexBytesUsed += appendedVertexDataSize;
 	this->indexBytesUsed += appendedIndexDataSize;
 
 	this->verticesInside = this->vertexBytesUsed / sizeof(Vertex);
 	this->indicesInside = this->indexBytesUsed / sizeof(uint32_t);
 
+	if (validationLayersEnabled) {
+		printf("\n[end of append]");
+	}
 }
 
-void asgDeviceLocalVIB::del() {
+void asgPerpetualVIB::del(){
+	vkUnmapMemory(logicalDevice, this->memory);
 	vkDestroyBuffer(logicalDevice, this->vertexHandle, nullptr);
 	vkDestroyBuffer(logicalDevice, this->indexHandle, nullptr);
 	vkFreeMemory(logicalDevice, this->memory, nullptr);
 }
 
-void asgDeviceLocalVIB::resize(VkDeviceSize vertexSizeRequired, VkDeviceSize indexSizeRequired) {//makes the buffer big enough for the new data, de momento voy a alojar solo lo q necesito
-	if (validationLayersEnabled) {
-		std::cout << "\n[asgVIBuffer::resize] resizing vertex buffer from " << this->vertexByteSize << " to " << vertexSizeRequired  <<  " bytes and index buffer from " << this->indexByteSize << " to " << indexSizeRequired << " bytes\n";
-	}
-	//creo nueva memoria
-		// creo vertexBuffer de tamaï¿½o size required
-		// consigo sus mem requirements
-		// creo indexBuffer de tamaï¿½o size required
-		// consigo sus mem requirements
-		// alojo memoria 
-			// de tamaï¿½o requirementes1.size + requirements2.size
-			// de memoryTypeIndex = findRightMemoryType(requerimientos de ambos, propiedades queridas de ambos{device local}
-	//meto vertex dejando espacio para new
-		// lo copio en offset 0 
-	//meto index en offset
-		// lo copio en ceil(requirements1.size/requirements2.alignment)
-
-	// creo vertexBuffer de tamaï¿½o size required
+void asgPerpetualVIB::resize(VkDeviceSize vertexSizeRequired, VkDeviceSize indexSizeRequired) {
+	// creo vertexBuffer de tamaño size required
 	VkBuffer newVertexBuffer;
 	VkBufferCreateInfo newVertexBufferCI{};
 
@@ -175,7 +148,7 @@ void asgDeviceLocalVIB::resize(VkDeviceSize vertexSizeRequired, VkDeviceSize ind
 	VkMemoryRequirements vertexMemRequirements;
 	vkGetBufferMemoryRequirements(logicalDevice, newVertexBuffer, &vertexMemRequirements);
 
-	// creo indexBuffer de tamaï¿½o size required
+	// creo indexBuffer de tamaño size required
 	VkBuffer newIndexBuffer;
 	VkBufferCreateInfo newIndexBufferCI{};
 	newIndexBufferCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -198,7 +171,7 @@ void asgDeviceLocalVIB::resize(VkDeviceSize vertexSizeRequired, VkDeviceSize ind
 	VkMemoryAllocateInfo newDeviceMemoryAI{};
 
 	newDeviceMemoryAI.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	newDeviceMemoryAI.memoryTypeIndex = findRigthMemoryType(vertexMemRequirements.memoryTypeBits & indexMemRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);//busco una memoria que sea buena para vertexBuffer y(&) 
+	newDeviceMemoryAI.memoryTypeIndex = findRigthMemoryType(vertexMemRequirements.memoryTypeBits & indexMemRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);//busco una memoria que sea buena para vertexBuffer y(&) 
 	newDeviceMemoryAI.allocationSize = vertexMemRequirements.size + indexMemRequirements.size;
 
 	if (vkAllocateMemory(logicalDevice, &newDeviceMemoryAI, nullptr, &newDeviceMemory) != VK_SUCCESS) {
@@ -210,7 +183,7 @@ void asgDeviceLocalVIB::resize(VkDeviceSize vertexSizeRequired, VkDeviceSize ind
 
 	//paso los contenidos
 	copyBuffer(this->vertexHandle, 0, newVertexBuffer, 0, this->vertexByteSize);//con VK_WHOLE_SIZE daba validation error diciendo que era un numero muy grande
-	copyBuffer(this->indexHandle, 0, newIndexBuffer, 0, std::min(this->indexByteSize, indexSizeRequired));//puede que haya alojado mas index bytes inicialmente de los que necesitaba, si vertex necesita resize pero index no, creara un buffer mas pequeï¿½o y podria dar error
+	copyBuffer(this->indexHandle, 0, newIndexBuffer, 0, std::min(this->indexByteSize, indexSizeRequired));//puede que haya alojado mas index bytes inicialmente de los que necesitaba, si vertex necesita resize pero index no, creara un buffer mas pequeño y podria dar error
 
 	//destruyo lo anterior
 	this->del();

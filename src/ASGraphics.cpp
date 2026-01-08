@@ -21,16 +21,16 @@
 //local
 #include <dependencies/binFileLoader.hpp>
 #include <ASG_utils.hpp>
-#include <ASG_descriptorSets.hpp>
 #include <ASG_swapChain.hpp>
 #include <ASG_VertexIndexBuffer.hpp>
+#include <ASG_PerpetualVertexIndexBuffer.hpp>
 #include <ASG_imageHandler.hpp>
 #include <ASG_model.hpp>
 #include <ASG_renderPass.hpp>
 #include <ASG_renderPass_deffered.hpp>
 
-
 /*definitions echas por mi*/
+#define ASG_DEBUG_MATERIAL_0 "debugMaterial0"
 
 /*Structs*/
 
@@ -193,11 +193,18 @@ const uint32_t asgModelHandle::getIndex()
 	return this->modelIndex;
 }
 
-/*public*/
+void asgDebugInit();
+void asgDebugPreDrawFrame();
+void asgDebugDrawFrame();
+
+/*******************************public*******************/
 void asgInit() {
 	if (validationLayersEnabled) {
-		printf("AAAAA");
+		printf("AAAAA\n");
+		printf("para ASG, el path a los shaders empieza con . y para preSpeedworldTest1 con ..\n");
 	}
+
+	printf("now its been built with cmake\n");
 
 	/*window creation*/
 	glfwInit();
@@ -379,7 +386,17 @@ void asgInit() {
 	}
 
 	swapChain = std::make_unique<asgSwapChain>();
+	
+	if (validationLayersEnabled) {
+		printf("after creating swapchain\n");
+	}
+
 	createRenderPasses(*swapChain.get());
+
+	if (validationLayersEnabled) {
+		printf("after creating render pases\n");
+	}
+
 
 	/*creamos primitivos de sincronización*/
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -401,6 +418,10 @@ void asgInit() {
 	//initializeDescriptorSets(&renderPasses[0].subPasses[0].pipeline);//TODO
 	asgImageHandler::initializeResources();
 
+	if (validationLayersEnabled) {
+		printf("after initializing resources for asgImageHandler\n");
+	}
+
 	//inicializo las matrices
 	MatrixTransformations matrixTransformations;//maybe all 3 matrices will change, view because of camera movement and proj because of window resize
 	matrixTransformations.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -414,6 +435,17 @@ void asgInit() {
 
 	VkPhysicalDeviceProperties properties;
 	vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+
+
+#ifndef NDEBUG
+	asgDebugInit();
+#endif 
+
+
+	if (validationLayersEnabled) {
+		printf("end of asgInit\n");
+	}
+
 }
 
 bool asgWindowShouldClose()
@@ -466,13 +498,67 @@ asgModelHandle asgLoadModel(std::string pathToModel) {
 
 	if (validationLayersEnabled) {
 		printf("\nIF A MODELS MATERIAL LOOK GLITCHED ITS BECAUSE THE SWITCH FOR ALBEDO MAPS DOESNT SUPPORT ITS INDEX");
+		printf("\nIF YOU GET WEIRD NUMBERS LIKE 3722304989 YOU MIGHT BE READING INTO A DANGLING POINTER AND GETTING GARBAGE");
+		printf("\nPOINTERS TO VECTOR ELEMENTS IS UNSAFE AND YOU SHOULD NEVER DO IT");
+	}
+	return returnHandle;
+}
+
+asgModelHandle asgLoadModel(std::string pathToModel, tinygltf::Model* returnModel) {
+	//get the data with tinygltf
+	tinygltf::TinyGLTF loader;
+	std::string err, warning;
+
+	if (pathToModel.back() == 'f') {
+		if (validationLayersEnabled) {
+			printf("\n[loading gltf]");
+		}
+		if (!loader.LoadASCIIFromFile(returnModel, &err, &warning, pathToModel)) {
+			throw std::runtime_error("could not load gltf file");
+		}
+	}
+	else {
+		if (validationLayersEnabled) {
+			printf("\n[loading glb]");
+		}
+		if (!loader.LoadBinaryFromFile(returnModel, &err, &warning, pathToModel)) {
+			throw std::runtime_error("could not load gltf file");
+		}
+	}
+	if (validationLayersEnabled) {
+		std::cout << err;
+		printf("\namount of scenes:%zu, default scene:%i\n", returnModel->scenes.size(), returnModel->defaultScene);
+	}
+
+	//make model
+	models.emplace_back(pathToModel, *returnModel);
+
+	//make the model handle
+	asgModelHandle returnHandle(static_cast<uint32_t>(models.size() - 1));
+
+	if (validationLayersEnabled) {
+		printf("\nIF A MODELS MATERIAL LOOK GLITCHED ITS BECAUSE THE SWITCH FOR ALBEDO MAPS DOESNT SUPPORT ITS INDEX");
 	}
 	return returnHandle;
 }
 
 void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw) {
+	//debug draw
+#ifndef NDEBUG
+	asgDebugPreDrawFrame();
+#endif
+	
+
+	if (validationLayersEnabled) {
+		printf("\n[asgDrawFrame] starting draw frame");
+	}
+
 	//wait until can draw curr frame
 	vkWaitForFences(logicalDevice, 1, &frameDrawnFences[currFrameDrawn], VK_FALSE, UINT64_MAX);//estoy dibujando 1 frame al mismo tiempo
+
+	if (validationLayersEnabled) {
+		printf("\n[asgDrawFrame] after waiting for fences");
+	}
 
 	//conseguir framebuffer: se�aliza got frame buffer image semaforo
 	uint32_t imageIndex;
@@ -492,6 +578,7 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 	vkResetFences(logicalDevice, 1, &frameDrawnFences[currFrameDrawn]);//we are here wich means we are actually working so:
 	vkResetCommandBuffer(commandBuffers[currFrameDrawn], 0);//el segundo par�metro es una bitmask para flags
 
+	//por cada modelo a dibujar
 	for (auto& modelHandle : modelsToDraw) {
 		//actualiza las matrices de las meshes que se dibujaran
 		models[modelHandle.getIndex()].applyMat(modelHandle.modelMatrix);
@@ -502,6 +589,10 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 				primitive.toBeDrawn = true;//TODO IDEA: each mesh has the name of its material, i create the materialsMeshes map each drawFrameCall and fill it only with the ones to be drawn, this would help not having the mesh have a reference to its dad, tendre que hacer profiling para saber cual es mejor
 			}
 		}
+	}
+
+	if (validationLayersEnabled) {
+		printf("\n[asgDrawFrame] after updating model matrices and marking primitives to be drawn");
 	}
 
 	//paso las matrices al uniform buffer
@@ -516,6 +607,10 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 
 		}
 
+	}
+
+	if (validationLayersEnabled) {
+		printf("\n[asgDrawFrame] after sending th matrices to the uniform buffer");
 	}
 
 	//inicializo las matrices
@@ -582,6 +677,9 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 	float randomCoordinate = 0.0f;//((float)rand() / RAND_MAX);//static float randomCoordinate = 0.0f;//randomCoordinate += 0.01f;if (randomCoordinate >= 1.0f) { randomCoordinate = 0.0f; };
 	vkCmdPushConstants(commandBuffers[currFrameDrawn], renderPasses[0].subPasses[0].pipeline.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(pushConstants), 4, &randomCoordinate);//TODO
 	
+	if (validationLayersEnabled) {
+		printf("\n[asgDrawFrame] before recording gbuffer subpass");
+	}
 	//Dibujar: gBuffer subPass
 	for (const auto& currMaterialBufferPair : materialsBuffers) {
 		//conectar buffers
@@ -593,7 +691,6 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 		for (const auto& currPrimitive : materialsPrimitives.at(currMaterialBufferPair.first)) {
 			//si esta marcada para dibujar
 			if (currPrimitive->toBeDrawn) {
-	
 				//meto sus push constants
 				pushConstants pc{};
 				pc.albedoIndex = currPrimitive->pbrIndices.albedoIndex;
@@ -608,8 +705,12 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 			}
 		}
 	}
+
+	if (validationLayersEnabled) {
+		printf("\n[asgDrawFrame] after recording gbuffer subpass");
+	}
 	
-	//ligthing subpass
+	/************ligthing subpass**********/
 	vkCmdNextSubpass(commandBuffers[currFrameDrawn], VK_SUBPASS_CONTENTS_INLINE);
 
 	//bind pipeline
@@ -624,6 +725,10 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 
 	vkCmdDraw(commandBuffers[currFrameDrawn], 4, 1, 0, 0);
 	
+	if (validationLayersEnabled) {
+		printf("\n[asgDrawFrame] after lighting subpass");
+	}
+
 	//terminar la render Pass
 	vkCmdEndRenderPass(commandBuffers[currFrameDrawn]);
 
@@ -651,6 +756,10 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 		throw std::runtime_error("could not submit command buffer");
 	}
 
+	if (validationLayersEnabled) {
+		printf("\n[asgDrawFrame] after submitting the cmd buffer");
+	}
+
 	//regresar la imagen a la swapChain
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.pImageIndices = &imageIndex;
@@ -669,6 +778,15 @@ void asgDrawFrame(glm::mat4 viewMatrix, std::vector<asgModelHandle> modelsToDraw
 	else if (resultRelatedToSwapChain != VK_SUCCESS) {
 		throw std::runtime_error("error with queue present");
 	}
+
+	if (validationLayersEnabled) {
+		printf("\n[asgDrawFrame] right before calling debugDrawFrame");
+	}
+
+//debug draw
+#ifndef NDEBUG
+	asgDebugDrawFrame();
+#endif
 
 	//actualizar currFrameDrawn
 	currFrameDrawn = (currFrameDrawn + 1) % MAX_FRAMES_IN_FLIGHT;//manera inteligente de loopear al inicio
@@ -708,6 +826,93 @@ void asgTerminate() {
 	glfwTerminate();
 }
 
+
+/*******************************debug*******************/
+#ifndef NDEBUG
+
+asgPrimitive debugPrimitive;
+std::vector<Vertex> debugVertices;
+std::vector<uint32_t> debugIndices;
+int debugTriangleCount;
+
+void asgDebugInit() {
+	debugTriangleCount = 0;
+	//creo los recursos de default
+	materialsBuffers.insert(std::make_pair(ASG_DEBUG_MATERIAL_0, std::make_unique<asgPerpetualVIB>(400000, 40000)));
+	materialsPrimitives.insert(std::make_pair(ASG_DEBUG_MATERIAL_0, std::vector<asgPrimitive*>()));
+
+	//crear el debugPrimitive
+	float shrinkFactor = 0.25f; // 25% size
+	glm::mat4 shrinkMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(shrinkFactor));
+	debugPrimitive.currTransform = shrinkMatrix;//glm::mat4(1.0f);
+
+	debugPrimitive.indexCount = 0;
+	debugPrimitive.indexOffset = 0;
+	debugPrimitive.vertexOffset = 0;
+
+	debugPrimitive.matrixIndex = 0;
+	asgPbrIndices pbrIndices;
+	pbrIndices.albedoIndex = 1;//la imagen que sea la 0, no tengo idea de cual sera
+	debugPrimitive.pbrIndices = pbrIndices;
+	debugPrimitive.toBeDrawn = true;
+	debugPrimitive.materialName = ASG_DEBUG_MATERIAL_0;
+
+}
+
+void asgDebugDrawTriangle(std::vector<glm::vec3> positions, glm::vec3 color) {
+	/***************añadir los vertices e indices**************/
+	//calcular la normal
+	glm::vec3 normal = glm::normalize(glm::cross(positions[1] - positions[0], positions[2] - positions[0]));
+
+	for (int i = 0; i < 3; i++) {
+		debugVertices.push_back(Vertex());
+		for (int j = 0; j < 3; j++) {
+			debugVertices[debugVertices.size() - 1].pos[j] = positions[i][j];
+			debugVertices[debugVertices.size() - 1].normal[j] = normal[j];
+			debugVertices[debugVertices.size() - 1].color[j] = color[j];
+
+		}
+		debugVertices[i].imgPos[0] = static_cast<float>(rand()) / RAND_MAX;
+		debugVertices[i].imgPos[1] = static_cast<float>(rand()) / RAND_MAX;
+	}
+
+	//make the indices
+	debugIndices.push_back(static_cast<uint32_t>(debugTriangleCount) * 3);
+	debugIndices.push_back(static_cast<uint32_t>(debugTriangleCount) * 3 + 1);
+	debugIndices.push_back(static_cast<uint32_t>(debugTriangleCount) * 3 + 2);
+
+	debugTriangleCount++;
+}
+
+void asgDebugPreDrawFrame() {
+	//metemos los triangulos a las estructuras de datos
+	printf("\n[asgDebugPreDrawFrame] start");
+	debugPrimitive.indexCount = static_cast<uint32_t>(debugIndices.size());
+	debugPrimitive.toBeDrawn = true;
+
+	printf("\nbefore append\n");
+
+	materialsBuffers[ASG_DEBUG_MATERIAL_0]->append(debugVertices, debugIndices);
+
+	printf("before pushback\n");
+
+	materialsPrimitives[ASG_DEBUG_MATERIAL_0].push_back(&debugPrimitive);
+
+	printf("end\n");
+}
+
+void asgDebugDrawFrame() {
+	//memory wipes the vib the hard way (because else we keep adding the same geometry every frame)
+	//this must be number one worst way to do it, but it works for now
+	vkWaitForFences(logicalDevice, 1, &frameDrawnFences[currFrameDrawn], VK_FALSE, UINT64_MAX);
+	
+	//memory wipe
+	materialsBuffers[ASG_DEBUG_MATERIAL_0]->logicalClear();
+	materialsPrimitives[ASG_DEBUG_MATERIAL_0].clear();
+	debugTriangleCount = 0;
+}
+
+#endif
 //test
 //void asgLoadData(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::string materialName) {
 //	materialsBuffers.insert(std::make_pair(materialName, std::make_unique<asgVIBuffer>(1000, 1000)));
