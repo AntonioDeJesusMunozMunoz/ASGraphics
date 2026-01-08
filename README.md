@@ -32,6 +32,8 @@ Debido a esta integración profunda, el uso de la librería requiere una estruct
 
 ## **Explicaciones extra**
 - Los archivos .bat son para compilar diferentes versiones de los shaders.
+
+## **Aviso**
 - Este proyecto NO es para simple implementación con proyectos existentes.
 - Se publica con fines de revisión de código y referencia de arquitectura.
 
