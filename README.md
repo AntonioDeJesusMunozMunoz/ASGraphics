@@ -35,7 +35,3 @@ Debido a esta integración profunda, el uso de la librería requiere una estruct
 - Este proyecto NO es para simple implementación con proyectos existentes.
 - Se publica con fines de revisión de código y referencia de arquitectura.
 
-- ## Nota
-This project is not intended to be a plug-and-play engine.
-It is shared for code review and architectural reference purposes.
-
