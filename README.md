@@ -7,7 +7,7 @@ El proyecto es principalmente para uso personal.
 ## **Librerias**
 Se usan las siguientes librerias:
 - Vulkan (El sdk de https://vulkan.lunarg.com/)
-- GLFW (https://github.com/g-truc/glm)
+- GLFW (https://github.com/glfw/glfw)
 - GLM  (https://github.com/g-truc/glm)
 - STB  (https://github.com/nothings/stb)
 - HashLibrary (https://github.com/stbrumme/hash-library)
