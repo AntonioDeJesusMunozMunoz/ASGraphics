@@ -1,39 +1,40 @@
+[Español](README.es.md)
+
 # **ASGraphics**
-Un motor de gráficos con interfáz de alto nivel hecho con vulkan en c++.
-El motor de gráficos maneja la carga de modelos, la memoria y la renderización usando la técnica de "deferred rendering"
+A graphics engine with a high-level interface, built with Vulkan in C++.
+The engine handles model loading, memory management, and rendering using the "deferred rendering" technique.
 
-El proyecto es principalmente para uso personal.
+This project is mainly for personal use.
 
-## **Librerias**
-Se usan las siguientes librerias:
-- Vulkan (El sdk de https://vulkan.lunarg.com/)
+## **Libraries**
+The following libraries are used:
+- Vulkan (the SDK from https://vulkan.lunarg.com/)
 - GLFW (https://github.com/glfw/glfw)
-- GLM  (https://github.com/g-truc/glm)
-- STB  (https://github.com/nothings/stb)
+- GLM (https://github.com/g-truc/glm)
+- STB (https://github.com/nothings/stb)
 - HashLibrary (https://github.com/stbrumme/hash-library)
-- tinyGLTF  (https://github.com/syoyo/tinygltf)
+- tinyGLTF (https://github.com/syoyo/tinygltf)
 
-## **Filosofía de diseño**
-ASGraphics está diseñada para una integración profunda con los proyectos que la utilicen, permitiendo:
-- Optimizaciones agresivas
-- Acceso directo a estructuras internas cuando es necesario
-- Mantener una interfaz simple y de alto nivel
+## **Design philosophy**
+ASGraphics is designed for deep integration with the projects that use it, allowing for:
+- Aggressive optimizations
+- Direct access to internal structures when needed
+- A simple, high-level interface
 
-Debido a esta integración profunda, el uso de la librería requiere una estructura de archivos específica. Esta estructura es la siguiente:
+Because of this deep integration, using the library requires a specific file structure, as follows:
 
-- tener en dependencies/include/: GLM(carpeta de proyecto, usandolo como submodulo de git), vulkan(carpeta de vulkan dentro del sdk, la que tiene la carpeta vk_video y vulkan), ASGraphics.hpp y ASG_vertex.hpp.
-- tener en dependencies/lib/:  glfw3.lib, vulkan-1.lib (del sdk), ASGraphics.lib. (La libreria de ASGraphics se puede generar usando Cmake) 
-- tener en resourceFiles/nonModelImages/:  lightingThresholds.jpg
-- tener en resourceFiles/shaders/compiled:  gBufferPass.vert, gBufferPass.frag, lightingPass.vert, y lightingPass.frag
- 
-*El path en el que se espera la carpeta de resourceFiles se puede cambiar llamando la funcion "asgConfigChangeResourceFilesPath" de asgConfig ANTES de llamar asgInit para inicializa la libreria 
+- in `dependencies/include/`: GLM (project folder, used as a git submodule), vulkan (the folder from the SDK containing the `vk_video` and `vulkan` folders), `ASGraphics.hpp`, and `ASG_vertex.hpp`.
+- in `dependencies/lib/`: `glfw3.lib`, `vulkan-1.lib` (from the SDK), and `ASGraphics.lib` (the ASGraphics library can be generated using CMake).
+- in `resourceFiles/nonModelImages/`: `lightingThresholds.jpg`.
+- in `resourceFiles/shaders/compiled`: `gBufferPass.vert`, `gBufferPass.frag`, `lightingPass.vert`, and `lightingPass.frag`.
 
-*El proyecto debe ser compilado con MSVC porque con ese se compiló la libreria
+*The expected path for the `resourceFiles` folder can be changed by calling `asgConfigChangeResourceFilesPath` from `asgConfig` BEFORE calling `asgInit` to initialize the library.*
 
-## **Explicaciones extra**
-- Los archivos .bat son para compilar diferentes versiones de los shaders.
+*The project must be compiled with MSVC, since that's what the library was compiled with.*
 
-## **Aviso**
-- Este proyecto NO es para simple implementación con proyectos existentes.
-- Se publica con fines de revisión de código y referencia de arquitectura.
+## **Additional notes**
+- The `.bat` files are used to compile different versions of the shaders.
 
+## **Notice**
+- This project is NOT intended for straightforward integration into existing projects.
+- It is published for code review and architecture reference purposes.
